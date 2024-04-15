@@ -1,0 +1,9 @@
+{
+	"authors": [
+		"HeronErin"
+	],
+	"copyright": "Copyright © 2024, HeronErin",
+	"description": "A kit for working with the TI-84+",
+	"license": "AGPL-3.0-only",
+	"name": "tiutils"
+}
