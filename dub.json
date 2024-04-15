@@ -3,6 +3,9 @@
 		"HeronErin"
 	],
 	"copyright": "Copyright © 2024, HeronErin",
+	"dependencies": {
+		"tern": "~>0.2.12"
+	},
 	"description": "A kit for working with the TI-84+",
 	"license": "AGPL-3.0-only",
 	"name": "tiutils"

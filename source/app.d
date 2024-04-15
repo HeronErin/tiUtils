@@ -1,6 +1,9 @@
 import std.stdio;
+import parseUtils.baseFile;
 
 void main()
 {
-	writeln("Edit source/app.d to start your project.");
+	BinParseBlock xp = gen8xvParser();
+	xp.fromFile("bins/8xvFiles/test.8xs");
+	// writeln("Edit source/app.d to start your project.");
 }
