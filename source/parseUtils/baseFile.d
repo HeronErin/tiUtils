@@ -36,7 +36,7 @@ struct Field{
                 case uShortChecksum:
                     data = input[0..2];
                     ushort sum = this.as!ushort;
-                    Field connectedData = obj.findById(dependsOn);
+                    Field connectedData = obj.findByIdInternal(dependsOn);
                     uint currSum = 0;
                     foreach (ubyte b ; connectedData.data){
                         currSum = (currSum+b) & 0xFFFF;
@@ -52,7 +52,7 @@ struct Field{
                     data = input[0..size];
                     return size;
                 case floatingStringField:
-                    Field sizeof = obj.findById(dependsOn);
+                    Field sizeof = obj.findByIdInternal(dependsOn);
                     size = sizeof.as!ushort;
 
                     data = input[0..size];
@@ -72,7 +72,7 @@ struct Field{
                     assert(data.length == size);
                     return size;
                 case floatingBytesField:
-                    Field sizeof = obj.findById(dependsOn);
+                    Field sizeof = obj.findByIdInternal(dependsOn);
                     size = sizeof.as!ushort;
                     
                     data = input[0..size];
@@ -111,6 +111,8 @@ import std.stdio;
 
 class BinParseBlock{
     Field[] fields;
+    BinParseBlock[] following = new BinParseBlock[0];
+    string[] followingDependants = new string[0];
     this(Field[] fields_){
         fields=fields_;
     }
@@ -118,6 +120,10 @@ class BinParseBlock{
         int index = 0;
         foreach(ref Field field ; fields){
             index += field.parse(this, bytes[index..$]);
+        }
+        foreach (size_t i; 0..following.length){
+            Field f = findByIdInternal(followingDependants[i]);
+            following[i].fromBytes(f.data);
         }
     }
     void fromFile(string path){
@@ -129,12 +135,29 @@ class BinParseBlock{
 
         fromBytes(slice);
     }
-    Field findById(string id){
+    Field findByIdInternal(string id){
         foreach(Field field ; fields){
             if (field.id == id)
                 return field;
         }
         assert(false);
+    }
+    Field findById(string id){
+        foreach(Field field ; fields){
+            if (field.id == id)
+                return field;
+        }
+        foreach(BinParseBlock block ; following){
+            foreach(Field field ; block.fields){
+                if (field.id == id)
+                    return field;
+            }
+        }
+        assert(false);
+    }
+    void combine(string dependsOn, BinParseBlock other){
+        following ~= other;
+        followingDependants ~= dependsOn;
     }
 
 }
