@@ -14,3 +14,5 @@ tiutils-test-*
 *.o
 *.obj
 *.lst
+.vscode
+.vscode/
