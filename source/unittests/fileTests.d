@@ -1,5 +1,6 @@
 module unittests.fileTests;
 import parseUtils.baseFile;
+import parseUtils.variableFiles;
 
 string[] listdir(string pathname){
     import std.algorithm.iteration : map, filter;
@@ -15,7 +16,7 @@ import std.stdio;
 
 unittest{
     foreach(string varFilePath ; listdir("bins/8xvFiles")){
-        	BinParseBlock xp = gen8xvParser();
+        	BinParseBlock xp = genVarParser();
 	        xp.fromFile(varFilePath);
         
     }

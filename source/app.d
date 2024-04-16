@@ -1,11 +1,14 @@
 import std.stdio;
+import parseUtils.variableFiles;
 import parseUtils.baseFile;
 import std.stdio;
 
 void main()
 {
-	BinParseBlock xp = gen8xvParser();
+	BinParseBlock xp = genVarParser();
 	xp.fromFile("bins/8xvFiles/test.8xs");
-	xp.findById("Data").data.writeln;
+	BinParseBlock varData = genVarEntrieParser();
+	varData.fromBytes(xp.findById("Data").data);
+	(cast(string) varData.findById("Data").data).writeln();
 	// writeln("Edit source/app.d to start your project.");
 }

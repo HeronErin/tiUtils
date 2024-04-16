@@ -138,20 +138,3 @@ class BinParseBlock{
     }
 
 }
-
-
-
-BinParseBlock gen8xvParser(){
-    with (blobContentVariety){
-        return new BinParseBlock(
-            [
-                Field("Magic Number",      requiredBytes, null, cast(ubyte[]) "**TI83F*"),
-                Field("Further signature", requiredBytes, null, [0x1A, 0x0A, 0x00]),
-                Field("Comment",           fixedSizeBytes,null, null, 42),
-                Field("Data length",       uShortField,   null, null),
-                Field("Data",              floatingBytesField, "Data length"),
-                Field("Checksum",          uShortChecksum,   "Data", null),
-            ]
-        );
-    }
-}
