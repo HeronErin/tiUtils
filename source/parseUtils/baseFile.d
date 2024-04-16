@@ -12,6 +12,7 @@ enum blobContentVariety{
     floatingStringField,
     fixedSizeBytes,
     floatingBytesField,
+    greedyByteField,    // Size here is instead amount to leave LEFT in the buffer AFTER consuming everything
 
     requiredBytes
 }
@@ -78,6 +79,9 @@ struct Field{
                     data = input[0..size];
                     assert(data.length == size);
                     return size;
+                case greedyByteField:
+                    data = input[0..$-size];
+                    return cast(int) data.length;
 
                 default:
                     variety.writeln;
@@ -121,6 +125,7 @@ class BinParseBlock{
         foreach(ref Field field ; fields){
             index += field.parse(this, bytes[index..$]);
         }
+        bytes[index..$].writeln;
         foreach (size_t i; 0..following.length){
             Field f = findByIdInternal(followingDependants[i]);
             following[i].fromBytes(f.data);
