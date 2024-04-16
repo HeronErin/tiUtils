@@ -5,6 +5,8 @@ import tern.object;
 enum blobContentVariety{
     ubyteField,
     uShortField,
+    uShortChecksum,
+    
     uintField,
     fixedStringFieled,
     floatingStringField,
@@ -31,6 +33,17 @@ struct Field{
                 case uShortField:
                     data = input[0..2];
                     return 2;
+                case uShortChecksum:
+                    data = input[0..2];
+                    ushort sum = this.as!ushort;
+                    Field connectedData = obj.findById(dependsOn);
+                    uint currSum = 0;
+                    foreach (ubyte b ; connectedData.data){
+                        currSum = (currSum+b) & 0xFFFF;
+                    }
+                    assert(cast(ushort)currSum == sum);
+
+                    return 2;
                 case uintField:
                     data = input[0..4];
                     return 4;
@@ -51,8 +64,6 @@ struct Field{
                     }
                     data = input[0..size];
                     assert(data.length == size);
-                    data.writeln;
-                    byteInput.writeln;
                     assert(data == byteInput);
                     return size;
                 case fixedSizeBytes:
@@ -62,7 +73,6 @@ struct Field{
                     return size;
                 case floatingBytesField:
                     Field sizeof = obj.findById(dependsOn);
-                    sizeof.writeln;
                     size = sizeof.as!ushort;
                     
                     data = input[0..size];
@@ -88,7 +98,7 @@ struct Field{
                     assert(variety == uintField);
                 }
                 static if(is(T == ushort)){
-                    assert(variety == uShortField);
+                    assert(variety == uShortField || variety == uShortChecksum);
                 }
                 // data.ptr.writeln;
                 return makeEndian(*cast(T*)data.ptr, Endianness.LittleEndian);
@@ -138,9 +148,9 @@ BinParseBlock gen8xvParser(){
                 Field("Magic Number",      requiredBytes, null, cast(ubyte[]) "**TI83F*"),
                 Field("Further signature", requiredBytes, null, [0x1A, 0x0A, 0x00]),
                 Field("Comment",           fixedSizeBytes,null, null, 42),
-                Field("Data length",       uShortField,   null, null, 2),
-                Field("Data",             floatingBytesField, "Data length", null, 2),
-                Field("Checksum",          uShortField,   null, null, 2),
+                Field("Data length",       uShortField,   null, null),
+                Field("Data",              floatingBytesField, "Data length"),
+                Field("Checksum",          uShortChecksum,   "Data", null),
             ]
         );
     }
