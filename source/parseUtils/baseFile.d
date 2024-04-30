@@ -158,7 +158,7 @@ class BinParseBlock{
                     return field;
             }
         }
-        assert(false);
+        assert(false, "id not found: " ~ id);
     }
     void combine(string dependsOn, BinParseBlock other){
         following ~= other;

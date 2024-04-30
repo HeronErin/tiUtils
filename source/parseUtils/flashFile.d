@@ -12,11 +12,10 @@ BinParseBlock genFlashFileParser(){
                 Field("Minor Version",     ubyteField),
                 Field("Flags",             ubyteField),
                 Field("Object type",       ubyteField),
-                Field("Object type",       ubyteField),
                 Field("Binary coded date", fixedSizeBytes,     null,      null,                           4),
 
-                Field("Name length",       uShortField,        null),
-                Field("Name",              floatingStringField,"Name length"),
+                Field("Name length",       ubyteField,        null),
+                Field("Name",              fixedStringFieled, null,null, 8),
 
                 Field("Filler Data",       fixedSizeBytes,     null,      null,                          23),
                 Field("Device Type",       ubyteField),
