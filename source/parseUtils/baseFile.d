@@ -104,7 +104,6 @@ struct Field{
                 static if(is(T == ushort)){
                     assert(variety == uShortField || variety == uShortChecksum);
                 }
-                // data.ptr.writeln;
                 return makeEndian(*cast(T*)data.ptr, Endianness.LittleEndian);
             }
         }
@@ -125,7 +124,6 @@ class BinParseBlock{
         foreach(ref Field field ; fields){
             index += field.parse(this, bytes[index..$]);
         }
-        bytes[index..$].writeln;
         foreach (size_t i; 0..following.length){
             Field f = findByIdInternal(followingDependants[i]);
             following[i].fromBytes(f.data);

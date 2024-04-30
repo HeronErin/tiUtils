@@ -46,7 +46,8 @@ class IntellHexError : Exception
     mixin basicExceptionCtors;
 }
 
-enum RecordType : ubyte{
+enum RecordType : ubyte
+{
     Data = 0,
     EndOfFile,
     ExtendedSegmentAddress,
@@ -57,9 +58,10 @@ enum RecordType : ubyte{
 
 import std.format.spec : singleSpec;
 import std.array : appender;
+
 auto hex = singleSpec("%x");
 
-private struct Hexline
+struct HexLine
 {
     ubyte count;
     ushort addr;
@@ -67,15 +69,18 @@ private struct Hexline
     ubyte[] data;
     ubyte sum;
 
-    void toString(scope void delegate(const(char)[]) sink) const {
+    uint appliedExtendedAddress = -1;
+
+    void toString(scope void delegate(const(char)[]) sink) const
+    {
         import std.format;
+
         auto str = appender!string();
         auto hex = singleSpec("%x");
-        
-        str ~= "Hexline{0x";
+
+        str ~= "HexLine{0x";
         formatValue(str, addr, hex);
         str ~= " for " ~ count.to!string ~ " bytes of type " ~ recordType.to!string ~ "}";
-
 
         sink(str.data);
 
@@ -86,17 +91,17 @@ import std.stdio;
 import std.algorithm.searching;
 
 // https://en.wikipedia.org/wiki/Intel_HEX
-Hexline[] getIntellHexLines(ubyte[] intellhex)
+HexLine[] getIntellHexLines(ubyte[] intellhex)
 {
     size_t currentLine = 1;
     size_t index;
-    Hexline[] lines;
+    HexLine[] lines;
     while (true)
     {
         scope (exit)
             currentLine += 1;
-        
-        Hexline line;
+
+        HexLine line;
 
         // Seek to colon symbol (everthing else is ignored)
         size_t diff = intellhex[index .. $].countUntil(':');
@@ -106,7 +111,7 @@ Hexline[] getIntellHexLines(ubyte[] intellhex)
 
         line.count = intellhex.popNum!ubyte(index);
         line.addr = intellhex.popNum!ushort(index);
-        line.recordType = cast(RecordType)intellhex.popNum!ubyte(index);
+        line.recordType = cast(RecordType) intellhex.popNum!ubyte(index);
 
         ubyte sumToCheck = (line.count + (line.addr >> 8) + (line.addr & 0xFF) + line.recordType) & 0xFF;
 
@@ -120,3 +125,55 @@ Hexline[] getIntellHexLines(ubyte[] intellhex)
     }
     return lines;
 }
+
+struct HexData
+{
+    ubyte[] data;
+    ushort startingAddress;
+    ushort endingAddress;
+    uint extendedSegmentAddress;
+}
+
+HexData[] groupHexLines(HexLine[] lines)
+{
+    HexData[] groups;
+    HexData currentGroup;
+    bool isFirstDataline = true;
+    foreach (HexLine line; lines)
+    {
+        switch (line.recordType)
+        {
+        case RecordType.ExtendedSegmentAddress:
+            currentGroup.extendedSegmentAddress = (*cast(ushort*) line.data.ptr) * 16;
+            break;
+        case RecordType.Data:
+            line.appliedExtendedAddress = line.addr + currentGroup.extendedSegmentAddress;
+            if (isFirstDataline){
+                NEW_GROUP:
+                currentGroup.data = line.data;
+                currentGroup.startingAddress = line.addr;
+                currentGroup.endingAddress = line.addr + line.count & 0xFFFF;
+                isFirstDataline = false;
+                break;
+            }
+            if (currentGroup.endingAddress == line.addr){
+                currentGroup.data ~= line.data;
+                currentGroup.endingAddress += line.count;
+                break;
+            }
+            // Multipage apps
+            groups ~= currentGroup;
+            HexData newGroup;
+            currentGroup = newGroup;
+            goto NEW_GROUP;
+        case RecordType.EndOfFile:
+            break;
+        default:
+            assert(0, "Unsupported record type: " ~ line.recordType.to!string);
+        }
+    }
+    groups ~= currentGroup;
+    return groups;
+}
+
+HexData[] decodeIntellHex(ubyte[] intellhex) => groupHexLines(getIntellHexLines(intellhex));

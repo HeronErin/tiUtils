@@ -7,12 +7,9 @@ import std.stdio;
 void main()
 {
 	BinParseBlock prog = genFlashFileParser();
-	prog.fromFile("bins/8xkFiles/cabrijr.8xk");
-	// prog.findById("Data").data.length.writeln;
-	// prog.findById("HexData length").as!ushort.writeln;
+	prog.fromFile("bins/8xkFiles/whatangl.8xk");
 
-	// prog.findById("HexData length").as!ushort.writeln;
-	getIntellHexLines(prog.findById("Data").data);
+	decodeIntellHex(prog.findById("Data").data).length.writeln;
 	// (prog.findById("Name length").data).writeln;
 	// (cast(string)prog.findById("Data").data).writeln;
 }
