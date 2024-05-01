@@ -398,7 +398,7 @@ Instruction getInstruction(ubyte[] data, ref size_t index){
                 break;
             case OperandVariety.Imm16:
             case OperandVariety.Imm16Lookup:
-                value.imm16 = (data[index++] << 8) | data[index++];
+                value.imm16 = data[index++] | (data[index++] << 8);
                 break;
             default: assert(0);
         }
