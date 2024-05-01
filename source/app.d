@@ -12,7 +12,7 @@ void main()
 
 	ubyte[] data = decodeIntellHex(prog.findById("Data").data)[0].data;
 	size_t index;
-	headerGen(data, index);
+	headerGen(data, index).writeln;
 	// stdout.rawWrite(data);
 
 }
