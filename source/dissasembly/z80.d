@@ -1,5 +1,6 @@
 module dissasembly.z80;
-
+import std.format;
+import std.string : strip;
 enum Register : ubyte{
     UNKNOWN,
     A,
@@ -23,6 +24,14 @@ enum Register : ubyte{
     SHADOW_AF,
 
     IXH, IXL, IYH, IYL
+}
+string toAsmString(Register reg){
+    import std.conv : to;
+    import std.string : toLower;
+
+    assert(reg != Register.UNKNOWN);
+    if (reg == Register.SHADOW_AF) return "af'";
+    return reg.to!string.toLower;
 }
 enum ConditionVariety : ubyte{
     NZ, Z, NC, C, PO, PE, P, M
@@ -171,12 +180,59 @@ enum InstructionType{
     Ei
 }
 
+string asOpString(InstructionType type){
+    import std.conv : to;
+    import std.string : toLower;
+    assert(type != InstructionType.Unknown);
+    assert(type != InstructionType.Indirection);
+    return type.to!string.toLower;
+}
 struct Instruction{
     InstructionType type;
     Operand[] operands;
     Instruction[ubyte] indirection = null;
 }
+string toAssembly(Instruction instruction){
+    string ret = instruction.type.asOpString ~ " ";
 
+    size_t oprLength = instruction.operands.length;
+    for (size_t i; i < oprLength; i++){
+        bool isFinal = oprLength-1 == i;
+        Operand operand = instruction.operands[i];
+        switch (operand.variety){
+            case OperandVariety.Reg8:
+            case OperandVariety.Reg16:
+                ret ~= operand.register.toAsmString;
+                break;
+            case OperandVariety.Reg16Lookup:
+                ret ~= "(" ~ operand.register.toAsmString ~ ")";
+                break;
+            case OperandVariety.Condition:
+                import std.string : toLower;
+                import std.conv;
+                ret ~= operand.condition.to!string.toLower;
+                break;
+            case OperandVariety.Rst:
+                ret ~= format("%02X", operand.rst) ~ "h";
+                break;
+            case OperandVariety.Imm8:
+                if (instruction.type == InstructionType.Out || instruction.type == InstructionType.In) ret~= "(";
+                ret ~= format("%02X", operand.imm8) ~ "h";
+                if (instruction.type == InstructionType.Out || instruction.type == InstructionType.In) ret~= ")";
+                break;
+            case OperandVariety.Imm16:
+                ret ~= format("%04X", operand.imm16) ~ "h";
+                break;
+            case OperandVariety.Imm16Lookup:
+                ret ~= "("~format("%04X", operand.imm16) ~ "h)";
+                break;
+            default: assert(0);
+        }
+        if (!isFinal)
+            ret ~= ", ";
+    }
+    return ret.strip();
+}
 
 
 
@@ -201,11 +257,11 @@ private Instruction[ubyte] genMainInstructions(){
     instructions[0x3f] = Instruction(InstructionType.Ccf, []);
     instructions[0x76] = Instruction(InstructionType.Halt, []);
     instructions[0x34] = Instruction(InstructionType.Inc, [OR16_LK(Register.HL)]);
-    instructions[0x35] = Instruction(InstructionType.Inc, [OR16_LK(Register.HL)]);
+    instructions[0x35] = Instruction(InstructionType.Dec, [OR16_LK(Register.HL)]);
 
     instructions[0x12] = Instruction(InstructionType.Ld, [OR16_LK(Register.DE), OR8(Register.A)]);
-    instructions[0x22] = Instruction(InstructionType.Ld, [IMM16, OR16(Register.HL)]);
-    instructions[0x32] = Instruction(InstructionType.Ld, [IMM16, OR8(Register.A)]);
+    instructions[0x22] = Instruction(InstructionType.Ld, [IMM16_LK, OR16(Register.HL)]);
+    instructions[0x32] = Instruction(InstructionType.Ld, [IMM16_LK, OR8(Register.A)]);
     instructions[0x36] = Instruction(InstructionType.Ld, [OR16_LK(Register.HL), IMM8]);
 
     instructions[0x2A] = Instruction(InstructionType.Ld, [OR16(Register.HL), IMM16_LK]);
@@ -284,13 +340,13 @@ private Instruction[ubyte] genMainInstructions(){
     {
         instructions[0b1100_0001 | (i << 4)] = Instruction(InstructionType.Pop, [opr]);
         instructions[0b1100_0101 | (i << 4)] = Instruction(InstructionType.Push, [opr]);
-        instructions[0b0000_0001  | (i << 4)] = Instruction(InstructionType.Ld, [opr, IMM16]);
     }
     static foreach (i, opr; Reg16_qq)
     {
         instructions[0b0000_1001 | (i << 4)] = Instruction(InstructionType.Add, [OR16(Register.HL), opr]);
         instructions[0b0000_1011 | (i << 4)] = Instruction(InstructionType.Dec, [opr]);
         instructions[0b0000_0011 | (i << 4)] = Instruction(InstructionType.Inc, [opr]);
+        instructions[0b0000_0001  | (i << 4)] = Instruction(InstructionType.Ld, [opr, IMM16]);
     }
     static foreach (to_index, reg_to; Reg8_rrr) if (reg_to.register != Register.UNKNOWN)
     {
@@ -311,3 +367,42 @@ private Instruction[ubyte] MiscIndirection() =>BitIndirection();
 private Instruction[ubyte] IyIndirection() => BitIndirection();
 
 Instruction[ubyte] MAIN = genMainInstructions();
+
+import std.stdio;
+Instruction getInstruction(ubyte[] data, ref size_t index){
+    Instruction ins; 
+    const(Instruction)[ubyte] indexMe;
+
+    indexMe = MAIN;
+    do{
+        ins = cast(Instruction) indexMe[data[index++]];
+        if (ins.type != InstructionType.Indirection)
+            break;
+        indexMe = ins.indirection;
+    }while(ins.type == InstructionType.Indirection);
+    
+    Operand[] operands = new Operand[ins.operands.length];
+    operands[0..ins.operands.length] = ins.operands;
+    ins.operands = operands;
+    foreach (ref value; ins.operands)
+    {
+        switch (value.variety){
+            case OperandVariety.Reg8:
+            case OperandVariety.Reg16:
+            case OperandVariety.Reg16Lookup:
+            case OperandVariety.Condition:
+            case OperandVariety.Rst:
+                break;
+            case OperandVariety.Imm8:
+                value.imm8 = data[index++];
+                break;
+            case OperandVariety.Imm16:
+            case OperandVariety.Imm16Lookup:
+                value.imm16 = (data[index++] << 8) | data[index++];
+                break;
+            default: assert(0);
+        }
+    }
+    
+    return ins;
+}
