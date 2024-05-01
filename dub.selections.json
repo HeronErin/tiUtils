@@ -1,6 +1,7 @@
 {
 	"fileVersion": 1,
 	"versions": {
+		"d80": "1.5.2",
 		"intel-intrinsics": "1.11.18",
 		"mir-linux-kernel": "1.0.1",
 		"tanya": "0.19.0",
