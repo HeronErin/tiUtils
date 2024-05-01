@@ -18,7 +18,7 @@ enum FieldType
     Padding,
 }
 
-void getSize(const(ubyte[]) data, ref ulong fieldstart, ref ulong fieldsize)
+void rs_get_field_size(const(ubyte[]) data, ref ulong fieldstart, ref ulong fieldsize)
 {
     switch (data[1] & 0x0f)
     {
@@ -66,24 +66,24 @@ struct AppHeaderField
             field.data = data[index+=2 .. index += 4];
             return nullable!AppHeaderField(field);
         }
-        if (firstIdByte == 0x80 && secoundIdByte == 0x12){
+        if (firstIdByte == 0x80 && (secoundIdByte & 0xF0) == 0x10){
             field.type = FieldType.ProgramType;
-            field.data = data[index+=2 .. index += 2];
+            field.data = data[index+=2 .. index += secoundIdByte & 0x0F];
             return nullable!AppHeaderField(field);
         }
-        if (firstIdByte == 0x80 && secoundIdByte == 0x21){
+        if (firstIdByte == 0x80 && (secoundIdByte & 0xF0) == 0x20){
             field.type = FieldType.RevisionNumber;
-            field.data = data[index+=2 .. index += 1];
+            field.data = data[index+=2 .. index += secoundIdByte & 0x0F];
             return nullable!AppHeaderField(field);
         }
-        if (firstIdByte == 0x80 && secoundIdByte == 0x31){
+        if (firstIdByte == 0x80 && (secoundIdByte & 0xF0) == 0x30){
             field.type = FieldType.AppBuildNumber;
-            field.data = data[index+=2 .. index += 1];
+            field.data = data[index+=2 .. index += secoundIdByte & 0x0F];
             return nullable!AppHeaderField(field);
         }
-        if (firstIdByte == 0x80 && secoundIdByte == 0x81){
+        if (firstIdByte == 0x80 && (secoundIdByte & 0xF0) == 0x80){
             field.type = FieldType.NumberOfPages;
-            field.data = data[index+=2 .. index += 1];
+            field.data = data[index+=2 .. index += secoundIdByte & 0x0F];
             return nullable!AppHeaderField(field);
         }
         if (firstIdByte == 0x80 && secoundIdByte == 0x90){
@@ -91,9 +91,9 @@ struct AppHeaderField
             index+=2;
             return nullable!AppHeaderField(field);
         }
-        if (firstIdByte == 0x80 && secoundIdByte == 0xA1){
+        if (firstIdByte == 0x80 && (secoundIdByte & 0xA0) == 0xA0){
             field.type = FieldType.MaximumRevision;
-            field.data = data[index+=2 .. index += 1];
+            field.data = data[index+=2 .. index += secoundIdByte & 0x0F];
             return nullable!AppHeaderField(field);
         }
         if (firstIdByte == 0x03 && (secoundIdByte & 0xF0) == 0x20){
@@ -103,8 +103,12 @@ struct AppHeaderField
         }
         if (firstIdByte == 0x02){
             field.type = FieldType.Signature;
-            // secoundIdByte.writeln;
-            field.data = data[index+=2 .. index += secoundIdByte];
+            
+            size_t fieldStart;
+            size_t fieldSize;
+            rs_get_field_size(data[index..$], fieldStart, fieldSize);
+
+            field.data = data[index+=fieldStart ..index+=fieldSize];
             return nullable!AppHeaderField(field);
         }
         if (firstIdByte == 0x80 && (secoundIdByte & 0xF0) == 0x40){
@@ -113,6 +117,21 @@ struct AppHeaderField
 
             return nullable!AppHeaderField(field);
         }
+        if (firstIdByte == 0x80 && (secoundIdByte & 0xF0) == 0x70){
+            field.type = FieldType.ProgramImagelength;
+            field.data = data[index+=2 .. index += secoundIdByte & 0x0F];
+
+            return nullable!AppHeaderField(field);
+        }
+        if (firstIdByte == 0){
+            field.type = FieldType.Padding;
+            
+            while (data[index] == 0)
+                field.data ~= data[index++];
+            return nullable!AppHeaderField(field);
+            // return nullable!AppHeaderField(null);
+        }
+        data[index-5..index+10].writeln;
         firstIdByte.writeln;
         secoundIdByte.writeln;
         assert(0);
@@ -129,8 +148,12 @@ AppHeaderField[] headerGen(ubyte[] data, ref size_t index)
         if (maybeField == null) break;
 
         AppHeaderField field = maybeField;
+        appHeaderFields ~= field;
+        field.writeln;
+        if (field.type == FieldType.Padding) break;
+        // Acts as final field
+        if (field.type == FieldType.ProgramImagelength && field.data.length == 0) break;
     }
-    appHeaderFields.writeln;
-    data[index + 1].writeln;
+    
     return appHeaderFields;
 }

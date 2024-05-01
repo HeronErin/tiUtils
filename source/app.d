@@ -8,7 +8,7 @@ import std.stdio;
 void main()
 {
 	BinParseBlock prog = genFlashFileParser();
-	prog.fromFile("bins/8xkFiles/whatangl.8xk");
+	prog.fromFile("bins/8xkFiles/cabrijr.8xk");
 
 	ubyte[] data = decodeIntellHex(prog.findById("Data").data)[0].data;
 	size_t index;
