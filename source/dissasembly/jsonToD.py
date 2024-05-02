@@ -1,22 +1,78 @@
 import json
-inp = """[["rlc b","CB  00"],["rlc c","CB  01"],["rlc d","CB  02"],["rlc e","CB  03"],["rlc h","CB  04"],["rlc l","CB  05"],["rlc (hl)","CB  06"],["rlc a","CB  07"],["rrc b","CB  08"],["rrc c","CB  09"],["rrc d","CB  0A"],["rrc e","CB  0B"],["rrc h","CB  0C"],["rrc l","CB  0D"],["rrc (hl)","CB  0E"],["rrc a","CB  0F"],["rl b","CB  10"],["rl c","CB  11"],["rl d","CB  12"],["rl e","CB  13"],["rl h","CB  14"],["rl l","CB  15"],["rl (hl)","CB  16"],["rl a","CB  17"],["rr b","CB  18"],["rr c","CB  19"],["rr d","CB  1A"],["rr e","CB  1B"],["rr h","CB  1C"],["rr l","CB  1D"],["rr (hl)","CB  1E"],["rr a","CB  1F"],["sla b","CB  20"],["sla c","CB  21"],["sla d","CB  22"],["sla e","CB  23"],["sla h","CB  24"],["sla l","CB  25"],["sla (hl)","CB  26"],["sla a","CB  27"],["sra b","CB  28"],["sra c","CB  29"],["sra d","CB  2A"],["sra e","CB  2B"],["sra h","CB  2C"],["sra l","CB  2D"],["sra (hl)","CB  2E"],["sra a","CB  2F"],["sll b","CB  30"],["sll c","CB  31"],["sll d","CB  32"],["sll e","CB  33"],["sll h","CB  34"],["sll l","CB  35"],["sll (hl)","CB  36"],["sll a","CB  37"],["srl b","CB  38"],["srl c","CB  39"],["srl d","CB  3A"],["srl e","CB  3B"],["srl h","CB  3C"],["srl l","CB  3D"],["srl (hl)","CB  3E"],["srl a","CB  3F"],["bit 0,b","CB  40"],["bit 0,c","CB  41"],["bit 0,d","CB  42"],["bit 0,e","CB  43"],["bit 0,h","CB  44"],["bit 0,l","CB  45"],["bit 0,(hl)","CB  46"],["bit 0,a","CB  47"],["bit 1,b","CB  48"],["bit 1,c","CB  49"],["bit 1,d","CB  4A"],["bit 1,e","CB  4B"],["bit 1,h","CB  4C"],["bit 1,l","CB  4D"],["bit 1,(hl)","CB  4E"],["bit 1,a","CB  4F"],["bit 2,b","CB  50"],["bit 2,c","CB  51"],["bit 2,d","CB  52"],["bit 2,e","CB  53"],["bit 2,h","CB  54"],["bit 2,l","CB  55"],["bit 2,(hl)","CB  56"],["bit 2,a","CB  57"],["bit 3,b","CB  58"],["bit 3,c","CB  59"],["bit 3,d","CB  5A"],["bit 3,e","CB  5B"],["bit 3,h","CB  5C"],["bit 3,l","CB  5D"],["bit 3,(hl)","CB  5E"],["bit 3,a","CB  5F"],["bit 4,b","CB  60"],["bit 4,c","CB  61"],["bit 4,d","CB  62"],["bit 4,e","CB  63"],["bit 4,h","CB  64"],["bit 4,l","CB  65"],["bit 4,(hl)","CB  66"],["bit 4,a","CB  67"],["bit 5,b","CB  68"],["bit 5,c","CB  69"],["bit 5,d","CB  6A"],["bit 5,e","CB  6B"],["bit 5,h","CB  6C"],["bit 5,l","CB  6D"],["bit 5,(hl)","CB  6E"],["bit 5,a","CB  6F"],["bit 6,b","CB  70"],["bit 6,c","CB  71"],["bit 6,d","CB  72"],["bit 6,e","CB  73"],["bit 6,h","CB  74"],["bit 6,l","CB  75"],["bit 6,(hl)","CB  76"],["bit 6,a","CB  77"],["bit 7,b","CB  78"],["bit 7,c","CB  79"],["bit 7,d","CB  7A"],["bit 7,e","CB  7B"],["bit 7,h","CB  7C"],["bit 7,l","CB  7D"],["bit 7,(hl)","CB  7E"],["bit 7,a","CB  7F"],["res 0,b","CB  80"],["res 0,c","CB  81"],["res 0,d","CB  82"],["res 0,e","CB  83"],["res 0,h","CB  84"],["res 0,l","CB  85"],["res 0,(hl)","CB  86"],["res 0,a","CB  87"],["res 1,b","CB  88"],["res 1,c","CB  89"],["res 1,d","CB  8A"],["res 1,e","CB  8B"],["res 1,h","CB  8C"],["res 1,l","CB  8D"],["res 1,(hl)","CB  8E"],["res 1,a","CB  8F"],["res 2,b","CB  90"],["res 2,c","CB  91"],["res 2,d","CB  92"],["res 2,e","CB  93"],["res 2,h","CB  94"],["res 2,l","CB  95"],["res 2,(hl)","CB  96"],["res 2,a","CB  97"],["res 3,b","CB  98"],["res 3,c","CB  99"],["res 3,d","CB  9A"],["res 3,e","CB  9B"],["res 3,h","CB  9C"],["res 3,l","CB  9D"],["res 3,(hl)","CB  9E"],["res 3,a","CB  9F"],["res 4,b","CB  A0"],["res 4,c","CB  A1"],["res 4,d","CB  A2"],["res 4,e","CB  A3"],["res 4,h","CB  A4"],["res 4,l","CB  A5"],["res 4,(hl)","CB  A6"],["res 4,a","CB  A7"],["res 5,b","CB  A8"],["res 5,c","CB  A9"],["res 5,d","CB  AA"],["res 5,e","CB  AB"],["res 5,h","CB  AC"],["res 5,l","CB  AD"],["res 5,(hl)","CB  AE"],["res 5,a","CB  AF"],["res 6,b","CB  B0"],["res 6,c","CB  B1"],["res 6,d","CB  B2"],["res 6,e","CB  B3"],["res 6,h","CB  B4"],["res 6,l","CB  B5"],["res 6,(hl)","CB  B6"],["res 6,a","CB  B7"],["res 7,b","CB  B8"],["res 7,c","CB  B9"],["res 7,d","CB  BA"],["res 7,e","CB  BB"],["res 7,h","CB  BC"],["res 7,l","CB  BD"],["res 7,(hl)","CB  BE"],["res 7,a","CB  BF"],["set 0,b","CB  C0"],["set 0,c","CB  C1"],["set 0,d","CB  C2"],["set 0,e","CB  C3"],["set 0,h","CB  C4"],["set 0,l","CB  C5"],["set 0,(hl)","CB  C6"],["set 0,a","CB  C7"],["set 1,b","CB  C8"],["set 1,c","CB  C9"],["set 1,d","CB  CA"],["set 1,e","CB  CB"],["set 1,h","CB  CC"],["set 1,l","CB  CD"],["set 1,(hl)","CB  CE"],["set 1,a","CB  CF"],["set 2,b","CB  D0"],["set 2,c","CB  D1"],["set 2,d","CB  D2"],["set 2,e","CB  D3"],["set 2,h","CB  D4"],["set 2,l","CB  D5"],["set 2,(hl)","CB  D6"],["set 2,a","CB  D7"],["set 3,b","CB  D8"],["set 3,c","CB  D9"],["set 3,d","CB  DA"],["set 3,e","CB  DB"],["set 3,h","CB  DC"],["set 3,l","CB  DD"],["set 3,(hl)","CB  DE"],["set 3,a","CB  DF"],["set 4,b","CB  E0"],["set 4,c","CB  E1"],["set 4,d","CB  E2"],["set 4,e","CB  E3"],["set 4,h","CB  E4"],["set 4,l","CB  E5"],["set 4,(hl)","CB  E6"],["set 4,a","CB  E7"],["set 5,b","CB  E8"],["set 5,c","CB  E9"],["set 5,d","CB  EA"],["set 5,e","CB  EB"],["set 5,h","CB  EC"],["set 5,l","CB  ED"],["set 5,(hl)","CB  EE"],["set 5,a","CB  EF"],["set 6,b","CB  F0"],["set 6,c","CB  F1"],["set 6,d","CB  F2"],["set 6,e","CB  F3"],["set 6,h","CB  F4"],["set 6,l","CB  F5"],["set 6,(hl)","CB  F6"],["set 6,a","CB  F7"],["set 7,b","CB  F8"],["set 7,c","CB  F9"],["set 7,d","CB  FA"],["set 7,e","CB  FB"],["set 7,h","CB  FC"],["set 7,l","CB  FD"],["set 7,(hl)","CB  FE"],["set 7,a","CB  FF"]]"""
+# https://gist.github.com/HeronErin/377bd3bd7ec93f6b13e654259ec9edcd
+inp = """[["in0 b,(<var>n</var>)","ED  00  <var>n</var>"],["out0 (<var>n</var>),b","ED  01  <var>n</var>"],["tst b","ED  04"],["in0 c,(<var>n</var>)","ED  08  <var>n</var>"],["out0 (<var>n</var>),c","ED  09  <var>n</var>"],["tst c","ED  0C"],["in0 d,(<var>n</var>)","ED  10  <var>n</var>"],["out0 (<var>n</var>),d","ED  11  <var>n</var>"],["tst d","ED  14"],["in0 e,(<var>n</var>)","ED  18  <var>n</var>"],["out0 (<var>n</var>),e","ED  19  <var>n</var>"],["tst e","ED  1C"],["in0 h,(<var>n</var>)","ED  20  <var>n</var>"],["out0 (<var>n</var>),h","ED  21  <var>n</var>"],["tst h","ED  24"],["in0 l,(<var>n</var>)","ED  28  <var>n</var>"],["out0 (<var>n</var>),l","ED  29  <var>n</var>"],["tst l","ED  2C"],["tst (hl)","ED  34"],["in0 a,(<var>n</var>)","ED  38  <var>n</var>"],["out0 (<var>n</var>),a","ED  39  <var>n</var>"],["tst a","ED  3C"],["in b,(c)","ED  40"],["out (c),b","ED  41"],["sbc hl,bc","ED  42"],["ld (<var>nn</var>),bc","ED  43  <var>nn</var>"],["neg","ED  44"],["retn","ED  45"],["im 0","ED  46"],["ld i,a","ED  47"],["in c,(c)","ED  48"],["out (c),c","ED  49"],["adc hl,bc","ED  4A"],["ld bc,(<var>nn</var>)","ED  4B  <var>nn</var>"],["mlt bc","ED  4C"],["reti","ED  4D"],["ld r,a","ED  4F"],["in d,(c)","ED  50"],["out (c),d","ED  51"],["sbc hl,de","ED  52"],["ld (<var>nn</var>),de","ED  53  <var>nn</var>"],["im 1","ED  56"],["ld a,i","ED  57"],["in e,(c)","ED  58"],["out (c),e","ED  59"],["adc hl,de","ED  5A"],["ld de,(<var>nn</var>)","ED  5B  <var>nn</var>"],["mlt de","ED  5C"],["im 2","ED  5E"],["ld a,r","ED  5F"],["in h,(c)","ED  60"],["out (c),h","ED  61"],["sbc hl,hl","ED  62"],["ld (<var>nn</var>),hl","ED  63  <var>nn</var>"],["tst <var>n</var>","ED  64  <var>n</var>"],["rrd","ED  67"],["in l,(c)","ED  68"],["out (c),l","ED  69"],["adc hl,hl","ED  6A"],["ld hl,(<var>nn</var>)","ED  6B  <var>nn</var>"],["mlt hl","ED  6C"],["rld","ED  6F"],["in (c)","ED  70"],["out (c),0","ED  71"],["sbc hl,sp","ED  72"],["ld (<var>nn</var>),sp","ED  73  <var>nn</var>"],["tstio <var>n</var>","ED  74  <var>n</var>"],["slp","ED  76"],["in a,(c)","ED  78"],["out (c),a","ED  79"],["adc hl,sp","ED  7A"],["ld sp,(<var>nn</var>)","ED  7B  <var>nn</var>"],["mlt sp","ED  7C"],["otim","ED  83"],["otdm","ED  8B"],["otimr","ED  93"],["otdmr","ED  9B"],["ldi","ED  A0"],["cpi","ED  A1"],["ini","ED  A2"],["outi","ED  A3"],["ldd","ED  A8"],["cpd","ED  A9"],["ind","ED  AA"],["outd","ED  AB"],["ldir","ED  B0"],["cpir","ED  B1"],["inir","ED  B2"],["otir","ED  B3"],["lddr","ED  B8"],["cpdr","ED  B9"],["indr","ED  BA"],["otdr","ED  BB"]]"""
+def test():
+    print("size_t i;")
+    print("string asmStr;")
+    for opcode in json.loads(inp):
+        byteData = [v for v in opcode[1].replace("\t", " ").split(" ") if v != " " and v]
+        hexByteData = []
+        for b in byteData:
+            if b == "<var>n</var>" or b == "<var>d</var>-$-2" or b == "<var>d</var>":
+                hexByteData.append("0x00")
+            elif b == "<var>nn</var>":
+                hexByteData.append("0x00")
+                hexByteData.append("0x00")
+            else:
+                hexByteData.append("0x"+b)
+        pStr = opcode[0].replace(",", ", ").replace("<var>n</var>", "00h").replace("<var>nn</var>", "0000h").replace("<var>d</var>", "00h")
 
-print("size_t i;")
-print("string asmStr;")
-for opcode in json.loads(inp):
-    byteData = [v for v in opcode[1].replace("\t", " ").split(" ") if v != " " and v]
-    hexByteData = []
-    for b in byteData:
-        if b == "<var>n</var>" or b == "<var>d</var>-$-2" or b == "<var>d</var>":
-            hexByteData.append("0x00")
-        elif b == "<var>nn</var>":
-            hexByteData.append("0x00")
-            hexByteData.append("0x00")
+        print("i = 0;")
+        print(f"asmStr = ( cast(ubyte[])[{', '.join(hexByteData)}] ).getInstruction(i).toAssembly;")
+        print(f'assert(asmStr == "{pStr}",  "`"~ asmStr ~ "` != `{pStr}`");');
+def tryInt(strr):
+    try:
+        int(strr)
+        return True
+    except:
+        return False
+
+reg16bits = ["af", "bc", "de", "hl", "ix", "iy", "sp", "pc"]
+reg8bits = ["a", "f", "b", "c", "d", "e", "h", "l", "i", "r", "ixh", "ixl", "iyh", "iyl"]
+
+def someWhatGenOps(ignore=""):
+    opcodes = []
+    for opcode in json.loads(inp):
+        odata = opcode[0]
+        while "  " in odata:
+            odata=odata.replace("  ", " ")
+        odata = odata.split(" ")
+        bdata = opcode[1]
+        while "  " in bdata:
+            bdata=bdata.replace("  ", " ")
+        if bdata.startswith(ignore):
+            bdata=bdata[len(ignore):]
+        bdata=bdata.replace("<var>n</var>", "").replace("<var>nn</var>", "").replace("<var>d</var>", "").strip()
+
+        if (len(odata) == 1):
+            opcodes.append(odata[0].capitalize())
+            print(f'instructions[0x{bdata}] = Instruction(InstructionType.{odata[0].capitalize()}, []);')
         else:
-            hexByteData.append("0x"+b)
-    pStr = opcode[0].replace(",", ", ").replace("<var>n</var>", "00h").replace("<var>nn</var>", "0000h").replace("<var>d</var>", "00h")
+            operands = []
+            for operand in odata[1].split(","):
+                if operand == "af'":
+                    operands.append(f"OR16(Register.SHADOW_AF")
+                elif operand in reg8bits:
+                    operands.append(f"OR8(Register.{operand.upper()})")
+                elif operand in reg16bits:
+                    operands.append(f"OR16(Register.{operand.upper()})")
+                elif operand[1:-1] in reg16bits:
+                    operands.append(f"OR16_LK(Register.{operand[1:-1].upper()})")
+                elif tryInt(operand):
+                    operands.append(f"PIMM8({operand})")
+                elif operand == "(c)":
+                    operands.append(f"OR8_LK(Register.C)")
+                elif operand == "(<var>n</var>)":
+                    operands.append("IMM8_LK")
+                elif operand == "(<var>nn</var>)":
+                    operands.append("IMM16_LK")
+                elif operand == "<var>n</var>":
+                    operands.append("IMM8")
+                else:
+                    print(operand, [operand[1:-1]], operand[1:-1] in reg16bits)
+                opcodes.append(odata[0].capitalize())
+            print(f'instructions[0x{bdata}] = Instruction(InstructionType.{odata[0].capitalize()}, [{", ".join(operands)}]);')
+    print(",\n".join(set(opcodes)))
 
-    print("i = 0;")
-    print(f"asmStr = ( cast(ubyte[])[{', '.join(hexByteData)}] ).getInstruction(i).toAssembly;")
-    print(f'assert(asmStr == "{pStr}",  "`"~ asmStr ~ "` != `{pStr}`");');
-    
+# someWhatGenOps("ED ")
+test()
