@@ -15,7 +15,7 @@ void main()
 
 
 	import dissasembly.appDecompiler;
-	decompPage(data);
+	decompPage(data).toAsm.writeln;
 
 	// ( cast(ubyte[])[0xED, 0x02] ).getInstruction(index).unknownData.writeln;
 	// index.writeln;
