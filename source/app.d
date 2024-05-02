@@ -8,14 +8,15 @@ import std.stdio;
 void main()
 {
 	BinParseBlock prog = genFlashFileParser();
-	prog.fromFile("bins/8xkFiles/cabrijr.8xk");
+	prog.fromFile("bins/8xkFiles/helloWorld.8xk");
 
 	ubyte[] data = decodeIntellHex(prog.findById("Data").data)[0].data;
 	size_t index;
 
-	import dissasembly.z80;
 
+	import dissasembly.appDecompiler;
+	decompPage(data);
 
-	( cast(ubyte[])[0xED, 0x02] ).getInstruction(index).unknownData.writeln;
-	index.writeln;
+	// ( cast(ubyte[])[0xED, 0x02] ).getInstruction(index).unknownData.writeln;
+	// index.writeln;
 }

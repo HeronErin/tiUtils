@@ -72,7 +72,8 @@ FieldType[ubyte] idsStartingWith80 = [
     0xC0 : FieldType.LowerstBasecode,
 
 ];
-
+import conversion;
+import std.conv;
 struct AppHeaderField
 {
     FieldType type;
@@ -96,6 +97,41 @@ struct AppHeaderField
             else
                 secoundIdByte.writeln;
         }
+    }
+    string toAssembly(){
+        string s;
+        alias fieldTypeGen() = {
+            s = bytesToDefb(info) ~ " ; Field: " ~ type.to!string ~ "\n";
+        };
+        import std.ascii : isASCII;
+        switch (type){
+            case FieldType.Name:
+                fieldTypeGen();
+                ubyte[] stringData;
+                ubyte[] byteData;
+                foreach (i, ubyte b; data)
+                {
+                    if (!isASCII(b)){
+                        byteData = data[i..$];
+                        break;
+                    }else
+                        stringData ~= escapeString("" ~ b);
+                    
+                }
+                if (stringData.length)
+                    s ~= "DEFM \"" ~ (cast(string)stringData) ~ "\"\n";
+                if (byteData.length)
+                    s ~= bytesToDefb(byteData) ~ "\n";
+                break;
+            default:
+                fieldTypeGen();
+                if (data.length){
+                    s ~= bytesToDefb(data) ~ "\n";
+                }
+        }
+
+
+        return s;
     }
 }
 static AppHeaderField[] headerGen(ubyte[] data, ref size_t index)
@@ -123,6 +159,7 @@ static AppHeaderField[] headerGen(ubyte[] data, ref size_t index)
             if (isFinalToken){
                 size_t old_index = index;
                 while (0 == data[index++]){}
+                if (old_index == index-1) {index--; return fields;}
                 AppHeaderField padding;
                 padding.info = data[old_index..index-1];
                 padding.classify;

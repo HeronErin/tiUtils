@@ -1,6 +1,9 @@
 module dissasembly.z80;
 import std.format;
 import std.string : strip;
+import std.stdio;
+import tern.typecons.common : Nullable, nullable;
+
 enum Register : ubyte{
     UNKNOWN,
     A,
@@ -57,11 +60,11 @@ struct Operand{
     OperandVariety variety;
     bool isLabel;
 
-        Register register = Register.UNKNOWN;
-        ConditionVariety condition;
-        ubyte rst;
-        ubyte imm8;
-        ushort imm16;
+    Register register = Register.UNKNOWN;
+    ConditionVariety condition;
+    ubyte rst;
+    ubyte imm8;
+    ushort imm16;
     
     string toString(){
         import std.conv;
@@ -179,14 +182,19 @@ string asOpString(InstructionType type){
     assert(type != InstructionType.Indirection);
     return type.to!string.toLower;
 }
+
 struct Instruction{
     InstructionType type;
     Operand[] operands;
     Instruction[ubyte] indirection = null;
     bool isIBitIndirection = false;
     ubyte[] unknownData = null;
+    size_t byteSize = -1;
 }
-string toAssembly(Instruction instruction){
+import dissasembly.z80Decompiler : Label;
+Nullable!string toAssembly(Instruction instruction, Label usingLabel = null){
+    if (instruction.type == instruction.type.Unknown) return nullable!string(null);
+
     string ret = instruction.type.asOpString ~ " ";
 
     size_t oprLength = instruction.operands.length;
@@ -219,13 +227,19 @@ string toAssembly(Instruction instruction){
                 if (instruction.type == InstructionType.Out || instruction.type == InstructionType.In) ret~= ")";
                 break;
             case OperandVariety.Imm16:
-                ret ~= format("%04X", operand.imm16) ~ "h";
+                if (usingLabel is null)
+                    ret ~= format("%04X", operand.imm16) ~ "h";
+                else 
+                    ret ~= usingLabel.genName;
                 break;
             case OperandVariety.Imm8Lookup:
                 ret ~= "("~format("%02X", operand.imm16) ~ "h)";
                 break;
             case OperandVariety.Imm16Lookup:
-                ret ~= "("~format("%04X", operand.imm16) ~ "h)";
+                if (usingLabel is null)
+                    ret ~= "("~format("%04X", operand.imm16) ~ "h)";
+                else
+                    ret ~= "(" ~ usingLabel.genName ~ "h)";
                 break;
             case OperandVariety.IxOffset:
                 ret ~= "(ix+"~format("%02X", operand.imm8) ~ "h)";
@@ -238,7 +252,7 @@ string toAssembly(Instruction instruction){
         if (!isFinal)
             ret ~= ", ";
     }
-    return ret.strip();
+    return nullable!string(ret.strip());
 }
 
 enum InstructionType{
@@ -1444,8 +1458,12 @@ private Instruction[ubyte] IyIndirection(){
 
 static Instruction[ubyte] MAIN = null;
 
-import std.stdio;
-Instruction getInstruction(ubyte[] data, ref size_t index){
+
+
+Instruction getInstruction(const(ubyte[]) data, ref size_t index) => getInstruction_nullable(data, index);
+
+Nullable!Instruction getInstruction_nullable(const(ubyte[]) data, ref size_t index){
+    size_t oldindex = index;
     Instruction ins; 
     const(Instruction)[ubyte] indexMe;
     if (MAIN == null)
@@ -1453,8 +1471,11 @@ Instruction getInstruction(ubyte[] data, ref size_t index){
     indexMe = MAIN;
     ubyte[] opcodeCollection;
     bool isIBit = false;
+    size_t temp;
     do{
-        ubyte indexWith = data[index++ + cast(size_t)isIBit];
+        temp = index++ + cast(size_t)isIBit;
+        if (temp >= data.length) return nullable!Instruction(null);
+        ubyte indexWith = data[temp];
         opcodeCollection ~= indexWith;
         if (indexWith in indexMe){
             ins = cast(Instruction) indexMe[indexWith];
@@ -1463,7 +1484,7 @@ Instruction getInstruction(ubyte[] data, ref size_t index){
             indexMe = ins.indirection;
             isIBit = ins.isIBitIndirection;
         }else{
-            return Instruction(InstructionType.Unknown, [], null, false, opcodeCollection);
+            return nullable!Instruction(null);
         }
     }while(ins.type == InstructionType.Indirection);
     
@@ -1484,14 +1505,19 @@ Instruction getInstruction(ubyte[] data, ref size_t index){
                 break;
             case OperandVariety.IxOffset:
             case OperandVariety.IyOffset:
-                value.imm8 = data[index++ - isIBit];
+                temp = index++ - isIBit;
+                if (temp >= data.length) return nullable!Instruction(null);
+                value.imm8 = data[temp];
                 break;
             case OperandVariety.Imm8Lookup:
             case OperandVariety.Imm8:
-                value.imm8 = data[index++];
+                temp = index++;
+                if (temp >= data.length) return nullable!Instruction(null);
+                value.imm8 = data[temp];
                 break;
             case OperandVariety.Imm16:
             case OperandVariety.Imm16Lookup:
+                if (index+1 >= data.length) return nullable!Instruction(null);
                 value.imm16 = data[index++] | (data[index++] << 8);
                 break;
             default: 
@@ -1499,8 +1525,8 @@ Instruction getInstruction(ubyte[] data, ref size_t index){
                 assert(0, value.variety.to!string);
         }
     }
-    
-    return ins;
+    ins.byteSize = index-oldindex;
+    return nullable!Instruction(ins);
 }
 
 unittest
