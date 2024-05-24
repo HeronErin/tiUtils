@@ -16,5 +16,5 @@ tiutils-test-*
 *.lst
 .vscode
 .vscode/
-
+TI
 testData/

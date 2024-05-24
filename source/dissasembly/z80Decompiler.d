@@ -192,18 +192,3 @@ DecompLine parseZ80Line(ref DecompilerUnit unit, const(ubyte[]) data, ref size_t
 
     return line;
 }
-
-import std.stdio;
-
-unittest {
-    ubyte[] bts = cast(ubyte[]) hexString!"EF4045210000224B8421A69DEF0A45EF2E45C948656C6C6F20776F726C642100";
-    size_t i;
-    DecompilerUnit u;
-    u.org = 0x9D93;
-
-    while (i < bts.length)
-        u.lines ~= parseZ80Line(u, bts, i);
-
-    u.toAsm.writeln;
-
-}

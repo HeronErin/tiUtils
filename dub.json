@@ -5,9 +5,11 @@
 	"copyright": "Copyright © 2024, HeronErin",
 	"dependencies": {
 		"d80": "~>1.5.2",
+		"fswatch": "~>0.6.1",
 		"tern": "~>0.2.12"
 	},
 	"description": "A kit for working with the TI-84+",
 	"license": "AGPL-3.0-only",
-	"name": "tiutils"
+	"name": "tiutils",
+	"targetName": "TI"
 }
