@@ -1,9 +1,7 @@
 import std.stdio;
-import parseUtils.flashFile;
-import parseUtils.baseFile;
-import parseUtils.intellHex;
-import parseUtils.appHeader;
-import std.stdio;
+import interactive.run;
+import interactive.create;
+import interactive.info;
 
 string stringWithSpaces(size_t count) {
 	string ret;
@@ -15,6 +13,7 @@ string stringWithSpaces(size_t count) {
 
 int main(string[] args) {
 	if (args.length < 2 || args[1] == "-h" || args[1] == "--help" || args[1] == "help") {
+	HELP_SCREEN:
 		writeln(
 			"TiUtils - A powerful, open source, Ti-83+ / Ti-84+ decompiler. (https://github.com/HeronErin/tiUtils)");
 
@@ -29,6 +28,10 @@ int main(string[] args) {
 					"TI run [Project directory]",
 					"Go back to an interactive editing session with a given file"
 				],
+				[
+					"TI info [Path file to look into]",
+					"Get a bunch of info for a given binary"
+				],
 			]) {
 			write(CommandDesc[0]);
 			write(stringWithSpaces(60 - CommandDesc[0].length));
@@ -37,6 +40,18 @@ int main(string[] args) {
 		}
 
 		return 1;
+	}
+	if (args[1] == "run" && args.length == 3) {
+		return runInteractive(args[2]);
+	}
+	if (args[1] == "info" && args.length == 3) {
+		return getInfoForBinary(args[2]);
+	}
+	else if (args[1] == "create" && args.length == 4) {
+		return createInteractive(args[2], args[3]);
+	}
+	else {
+		goto HELP_SCREEN;
 	}
 	// BinParseBlock prog = genFlashFileParser();
 	// prog.fromFile("bins/world_signed.8xk");

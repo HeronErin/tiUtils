@@ -1,45 +1,40 @@
 module parseUtils.appHeader;
 import std.stdio;
 
-
-
-void getFieldSize(const(ubyte[]) data, size_t index, ref ulong fieldstart, ref ulong fieldsize)
-{
-    switch (data[index+1] & 0x0f)
-    {
+void getFieldSize(const(ubyte[]) data, size_t index, ref ulong fieldstart, ref ulong fieldsize) {
+    switch (data[index + 1] & 0x0f) {
         case 0x0D:
             fieldstart = 3;
-            fieldsize = data[index+2];
+            fieldsize = data[index + 2];
             break;
 
         case 0x0E:
             fieldstart = 4;
-            fieldsize = (cast(ulong)data[index+2] << 8) | data[index+3];
+            fieldsize = (cast(ulong) data[index + 2] << 8) | data[index + 3];
             break;
 
         case 0x0F:
             fieldstart = 6;
-            fieldsize = ((cast(ulong)data[index+2] << 24)
-                        | (cast(ulong)data[index+3] << 16)
-                        | (cast(ulong)data[index+4] << 8)
-                        | cast(ulong)data[index+5]);
+            fieldsize = ((cast(ulong) data[index + 2] << 24)
+                    | (cast(
+                        ulong) data[index + 3] << 16)
+                    | (cast(
+                        ulong) data[index + 4] << 8)
+                    | cast(ulong) data[index + 5]);
             break;
 
         default:
             fieldstart = 2;
-            fieldsize = data[index+1] & 0x0f;
+            fieldsize = data[index + 1] & 0x0f;
             break;
     }
 }
-
-
 
 import tern.typecons.common : Nullable, nullable;
 
 // http://z80-heaven.wikidot.com/fappheader
 // https://wikiti.brandonw.net/index.php?title=Category:83Plus:OS:Certificate/Headers:Fields_By_Number
-enum FieldType
-{
+enum FieldType {
     UNKNOWN,
     Signature,
     DateStamp,
@@ -58,6 +53,7 @@ enum FieldType
     MaxHardwareRevision,
     LowerstBasecode
 }
+
 FieldType[ubyte] idsStartingWith80 = [
     0x10 : FieldType.DeveloperKey,
     0x20 : FieldType.RevisionNumber,
@@ -74,13 +70,12 @@ FieldType[ubyte] idsStartingWith80 = [
 ];
 import conversion;
 import std.conv;
-struct AppHeaderField
-{
+
+struct AppHeaderField {
     FieldType type;
     ubyte[] info;
     ubyte[] data;
-    void classify()
-    {
+    void classify() {
         ubyte firstIdByte = info[0];
         ubyte secoundIdByte = info[1];
         if (firstIdByte == 0x80 && secoundIdByte == 0x0F)
@@ -91,81 +86,87 @@ struct AppHeaderField
             type = FieldType.DateStamp;
         else if (firstIdByte == 0)
             type = FieldType.Padding;
-        else if (firstIdByte == 0x80){
+        else if (firstIdByte == 0x80) {
             if ((secoundIdByte & 0xF0) in idsStartingWith80)
                 type = idsStartingWith80[secoundIdByte & 0xF0];
             else
                 secoundIdByte.writeln;
         }
     }
-    string toAssembly(){
+
+    string toAssembly() {
         string s;
         alias fieldTypeGen() = {
             s = bytesToDefb(info) ~ " ; Field: " ~ type.to!string ~ "\n";
         };
         import std.ascii : isASCII;
-        switch (type){
+
+        switch (type) {
             case FieldType.Name:
                 fieldTypeGen();
                 ubyte[] stringData;
                 ubyte[] byteData;
-                foreach (i, ubyte b; data)
-                {
-                    if (!isASCII(b)){
-                        byteData = data[i..$];
+                foreach (i, ubyte b; data) {
+                    if (!isASCII(b)) {
+                        byteData = data[i .. $];
                         break;
-                    }else
+                    }
+                    else
                         stringData ~= escapeString("" ~ b);
-                    
+
                 }
                 if (stringData.length)
-                    s ~= "DEFM \"" ~ (cast(string)stringData) ~ "\"\n";
+                    s ~= "DEFM \"" ~ (cast(string) stringData) ~ "\"\n";
                 if (byteData.length)
                     s ~= bytesToDefb(byteData) ~ "\n";
                 break;
             default:
                 fieldTypeGen();
-                if (data.length){
+                if (data.length) {
                     s ~= bytesToDefb(data) ~ "\n";
                 }
         }
 
-
         return s;
     }
 }
-static AppHeaderField[] headerGen(ubyte[] data, ref size_t index)
-{
+
+static AppHeaderField[] headerGen(ubyte[] data, ref size_t index) {
     AppHeaderField[] fields;
     size_t fieldStart, fieldSize;
-    while (true)
-    {
+    while (true) {
         AppHeaderField field;
 
         getFieldSize(data, index, fieldStart, fieldSize);
 
-        if (data[index] == 0x80 && data[index+1] == 0x0F){
+        if (data[index] == 0x80 && data[index + 1] == 0x0F) {
             field.info = data[index .. index += 6];
             field.classify;
             fields ~= field;
             continue;
-        }else{
+        }
+        else {
             bool isFinalToken = (data[index + 1] & 0xF0) == 0x70;
-            field.info = data[index .. index+=fieldStart];
-            field.data = data[index .. index+=fieldSize];
+            field.info = data[index .. index += fieldStart];
+            field.data = data[index .. index += fieldSize];
             field.classify;
             fields ~= field;
 
-            if (isFinalToken){
-                size_t old_index = index;
-                while (0 == data[index++]){}
-                if (old_index == index-1) {index--; return fields;}
-                AppHeaderField padding;
-                padding.info = data[old_index..index-1];
-                padding.classify;
-                fields ~= padding;
+            if (!isFinalToken)
+                continue;
+            size_t old_index = index;
+            while (0 == data[index++]) {
+            }
+            if (old_index == index - 1) {
+                index--;
                 return fields;
             }
+            AppHeaderField padding;
+            padding.info = data[old_index .. index - 1];
+            padding.classify;
+            fields ~= padding;
+            return fields;
+
         }
         // break;
     }

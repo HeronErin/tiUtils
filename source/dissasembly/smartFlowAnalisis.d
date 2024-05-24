@@ -87,8 +87,8 @@ private void handleCodeSpot(ref AnalysisState state, ushort pc) {
         state.knownCode ~= currentRange;
     };
     ushort[] hitBatches;
-    
-    scope (exit){
+
+    scope (exit) {
         foreach (ushort hitMe; hitBatches) {
             handleCodeSpot(state, hitMe);
         }
@@ -107,15 +107,17 @@ private void handleCodeSpot(ref AnalysisState state, ushort pc) {
                 endRange();
                 return;
             }
-            if (instruction.type == InstructionType.Call){
-                ushort ptr = (instruction.operands.length == 1 ? instruction.operands[0] : instruction.operands[1])
-                            .assertAs(OperandVariety.Imm16).imm16;
-                if (!state.inAbsRange(ptr)) continue;
+            if (instruction.type == InstructionType.Call) {
+                ushort ptr = (instruction.operands.length == 1 ? instruction
+                        .operands[0] : instruction.operands[1])
+                    .assertAs(OperandVariety.Imm16).imm16;
+                if (!state.inAbsRange(ptr))
+                    continue;
                 hitBatches ~= ptr;
             }
-            if (instruction.type == InstructionType.Jp){
+            if (instruction.type == InstructionType.Jp) {
                 Nullable!Operand jpTo = instruction.findOfOperandVariety(OperandVariety.Imm16);
-                if (jpTo == null) 
+                if (jpTo == null)
                     return endRange();
 
                 ushort ptr = jpTo.value.imm16;
@@ -124,7 +126,7 @@ private void handleCodeSpot(ref AnalysisState state, ushort pc) {
                     return endRange();
                 hitBatches ~= ptr;
                 return endRange();
-                
+
             }
         }
     }
