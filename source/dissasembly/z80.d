@@ -80,7 +80,13 @@ struct Operand{
             return "(Imm16)";
         if (variety ==OperandVariety.Reg16Lookup)
             return "(" ~ register.to!string ~ ")";
+        if (variety == OperandVariety.Condition)
+            return condition.to!string;
         assert(0);
+    }
+    Operand assertAs(OperandVariety testType){
+        assert(variety == testType);
+        return this;
     }
 }
 Operand OR8(Register register){
@@ -183,6 +189,15 @@ string asOpString(InstructionType type){
     return type.to!string.toLower;
 }
 
+Nullable!Operand findOfOperandVariety(Instruction inst, OperandVariety variety){
+    foreach(operand ; inst.operands){
+        if (operand.variety == variety)
+            return nullable(operand);
+    }
+
+    return nullable!Operand(null);
+}
+
 struct Instruction{
     InstructionType type;
     Operand[] operands;
@@ -222,6 +237,10 @@ Nullable!string toAssembly(Instruction instruction, Label usingLabel = null){
                 ret ~= operand.imm8.to!string;
                 break;
             case OperandVariety.Imm8:
+                if (instruction.type == InstructionType.Jr && usingLabel !is null){
+                    ret ~= usingLabel.genName;
+                    break;
+                }
                 if (instruction.type == InstructionType.Out || instruction.type == InstructionType.In) ret~= "(";
                 ret ~= format("%02X", operand.imm8) ~ "h";
                 if (instruction.type == InstructionType.Out || instruction.type == InstructionType.In) ret~= ")";
@@ -1491,9 +1510,14 @@ Nullable!Instruction getInstruction_nullable(const(ubyte[]) data, ref size_t ind
     Operand[] operands = new Operand[ins.operands.length];
     operands[0..ins.operands.length] = ins.operands;
     ins.operands = operands;
+    
+    // if (ins.type == InstructionType.Ret){
+        // ins.writeln;
+        // opcodeCollection.writeln;
+    // }
+
     foreach (ref value; ins.operands)
     {
-
         switch (value.variety){
             case OperandVariety.Reg8:
             case OperandVariety.Reg16:
