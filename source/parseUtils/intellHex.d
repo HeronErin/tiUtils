@@ -164,7 +164,7 @@ HexData[] groupHexLines(HexLine[] lines) {
                 }
                 break;
             default:
-                assert(0, "Unsupported record type: " ~ line.recordType.to!string);
+                throw new IntellHexError("Unsupported record type: " ~ line.recordType.to!string);
         }
     }
     if (!isFirstDataline)

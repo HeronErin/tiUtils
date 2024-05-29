@@ -3,6 +3,7 @@ import interactive.project;
 import std.path;
 import std.file;
 import std.stdio;
+import tern.object;
 
 import std.string : format;
 
@@ -18,7 +19,7 @@ string humanReadableSize(ulong bytes) {
         unitIndex++;
     }
 
-    return format("%.2f %s", size, units[unitIndex]);
+    return format(unitIndex ? "%.2f %s" : "%g %s", size, units[unitIndex]);
 }
 
 string toHex(ubyte data) {
@@ -37,9 +38,9 @@ string toHex(ubyte[] data) {
 
 import parseUtils.baseFile;
 
-private void flashFormatSpecificInfo(string pathToBin) {
+private void flashFormatSpecificInfo(string pathToBin, bool isOS) {
     import parseUtils.flashFile;
-    
+
     // ================================================
     // ||          FILE HEADER INFOMATION            ||
     // ================================================
@@ -93,33 +94,63 @@ private void flashFormatSpecificInfo(string pathToBin) {
     writeln("h)");
 
     write("\tIntellHex length: ");
-    writeln(humanReadableSize(binFile.findById("HexData length").as!uint));
-    
+    writeln(humanReadableSize(
+            makeEndian(*cast(uint*) binFile.findById("HexData length")
+            .data.ptr, Endianness.BigEndian)
+    ));
+
     // ================================================
     // ||          Binary header information         ||
     // ================================================
-    
+
     import parseUtils.flashHeader;
     import parseUtils.intellHex;
 
-    
     HexData[] pages = decodeIntellHex(binFile.findById("Data").data);
-    "---------".writeln;
-    foreach (HexData p; pages) {
-        p.declaredPageInfo.writeln;
-    }
 
     size_t headerLength;
-    
-    // FlashHeaderField[] fields = headerGen(binFile.findById("Data").data, headerLength);
+    FlashHeaderField[] fields = headerGen(pages[0].data, headerLength);
 
-    // write("Binary header information (" ~ humanReadableSize(headerLength) ~ ") consiting of ");
-    // write(fields.length);
-    // writeln(" fields:");
+    write("Binary header information (" ~ humanReadableSize(headerLength) ~ ") consiting of ");
+    write(fields.length);
+    writeln(" fields:");
 
-    // decodeIntellHex()
+    foreach (FlashHeaderField field; fields) {
+        if (field.type == FieldType.LastField)
+            continue;
+        write("\t");
+        field.type.write;
+        ": ".write;
+        switch (field.type) {
+            case FieldType.ProgramLength:
+                ubyte[] rdata = field.info[2 .. $][];
+
+                uint size = makeEndian(*cast(uint*) rdata.ptr, Endianness.BigEndian);
+                humanReadableSize(size).writeln;
+
+                break;
+
+            case FieldType.Name:
+                "\"".write;
+                (cast(string) field.data).write;
+                "\" ".write;
+                goto default;
+            case FieldType.DateStamp:
+                if (field.data.length != 4 && field.data.length != 6)
+                    goto default;
+                auto date = field.parseDate;
+                if (date != null) {
+                    date.value.toSimpleString.write;
+                    "  ".write;
+                }
+                goto default;
+            default:
+                field.data.toHex.writeln;
+                break;
+        }
+
+    }
 }
-
 
 private void variableSpecificInfo(string pathToBin) {
     import parseUtils.intellHex;
@@ -157,7 +188,7 @@ private void variableSpecificInfo(string pathToBin) {
     ubyte flag = binFile.findById("Flag").as!ubyte;
     write("\tFlags: ");
     write(flag.toHex);
-    writeln(flag & 0x80 ? "h (Archived)" : "h (Not Archived)");    
+    writeln(flag & 0x80 ? "h (Archived)" : "h (Not Archived)");
 }
 
 int getInfoForBinary(string pathToBin) {
@@ -192,7 +223,7 @@ int getInfoForBinary(string pathToBin) {
     switch (bext) {
         case BinExt.OS:
         case BinExt.App:
-            flashFormatSpecificInfo(pathToBin);
+            flashFormatSpecificInfo(pathToBin, bext == BinExt.OS);
             break;
         case BinExt.BasicOrBinaryProgram:
             variableSpecificInfo(pathToBin);

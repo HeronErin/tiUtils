@@ -1,5 +1,6 @@
 module parseUtils.flashHeader;
 import std.stdio;
+import tern.object;
 
 void getFieldSize(const(ubyte[]) data, size_t index, ref ulong fieldstart, ref ulong fieldsize) {
     switch (data[index + 1] & 0x0f) {
@@ -77,6 +78,9 @@ FieldType[ubyte] idsStartingWith80 = [
 ];
 import conversion;
 import std.conv;
+import std.datetime;
+const auto TI_EPOCH = SysTime(DateTime(1997, 1, 1), UTC());
+
 
 struct FlashHeaderField {
     FieldType type;
@@ -85,7 +89,7 @@ struct FlashHeaderField {
     void classify() {
         ubyte firstIdByte = info[0];
         ubyte secoundIdByte = info[1];
-        ubyte lowerSecoundByteNibble = secoundIdByte & 0xF0;
+        ubyte secoundByteHighNibble = secoundIdByte & 0xF0;
         if (firstIdByte == 0x80 && secoundIdByte == 0x0F)
             type = FieldType.ProgramLength;
         else if (firstIdByte == 0x02)
@@ -94,21 +98,21 @@ struct FlashHeaderField {
             type = FieldType.DateStamp;
         else if (firstIdByte == 0)
             type = FieldType.Padding;
-        else if (firstIdByte == 0x04 && lowerSecoundByteNibble == 0x10)
+        else if (firstIdByte == 0x04 && secoundByteHighNibble == 0x10)
             type = FieldType.ValidationNumber;
-        else if (firstIdByte == 0x04 && lowerSecoundByteNibble == 0)
+        else if (firstIdByte == 0x04 && secoundByteHighNibble == 0)
             type = FieldType.CalculatorIdRequired;
-        else if (firstIdByte == 0x05 && lowerSecoundByteNibble == 0x10)
+        else if (firstIdByte == 0x05 && secoundByteHighNibble == 0x10)
             type = FieldType.AboutScreenData;
-        else if (firstIdByte == 0x07 && lowerSecoundByteNibble == 0x10)
+        else if (firstIdByte == 0x07 && secoundByteHighNibble == 0x10)
             type = FieldType.StandardKeyHeader;
-        else if (firstIdByte == 0x07 && lowerSecoundByteNibble == 0x30)
+        else if (firstIdByte == 0x07 && secoundByteHighNibble == 0x30)
             type = FieldType.StandardKeyData;
         else if (firstIdByte == 0x80) {
-            if (lowerSecoundByteNibble in idsStartingWith80)
-                type = idsStartingWith80[lowerSecoundByteNibble];
+            if (secoundByteHighNibble in idsStartingWith80)
+                type = idsStartingWith80[secoundByteHighNibble];
             else
-                assert(0, "Unknown 0x80 style header: " ~ lowerSecoundByteNibble.to!string);
+                assert(0, "Unknown 0x80 style header: " ~ secoundByteHighNibble.to!string);
         }
     }
 
@@ -147,12 +151,33 @@ struct FlashHeaderField {
 
         return s;
     }
+    ulong toNumber(){
+        import std.algorithm : min;
+        ulong ret = 0;
+        foreach (i; 0..min(8, data.length)) {
+            ret |= data[i] << (8 * i);
+        }
+        return makeEndian(ret, Endianness.LittleEndian);
+    }
+    Nullable!SysTime parseDate(){
+        if (data.length != 4 && data.length != 6)
+            return nullable!SysTime(null);
+        ubyte[] rdata = data;
+        
+        if (data.length == 6)
+            rdata = rdata[2..$];
+
+        uint secoundsPastEpoch = makeEndian(*cast(uint*)rdata.ptr, Endianness.BigEndian);
+        
+        Duration duration = seconds(secoundsPastEpoch);
+        return nullable!SysTime(TI_EPOCH + duration);
+    }
 }
 
 static FlashHeaderField[] headerGen(ubyte[] data, ref size_t index) {
     FlashHeaderField[] fields;
     size_t fieldStart, fieldSize;
-    while (true) {
+    while (1) {
         FlashHeaderField field;
 
         getFieldSize(data, index, fieldStart, fieldSize);
@@ -172,9 +197,11 @@ static FlashHeaderField[] headerGen(ubyte[] data, ref size_t index) {
 
             if (!isFinalToken)
                 continue;
+            if (data.length <= index)
+                return fields;
+
             size_t old_index = index;
-            while (0 == data[index++]) {
-            }
+            while (0 == data[index++]) {}
             if (old_index == index - 1) {
                 index--;
                 return fields;
