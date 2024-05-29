@@ -15,7 +15,7 @@ string[] listdir(string pathname) {
 }
 enum BinExt : string {
     App = ".8xk",
-    Program = ".8xp",
+    BasicOrBinaryProgram = ".8xp",
     OS = ".8xu",
 }
 import std.traits : EnumMembers;

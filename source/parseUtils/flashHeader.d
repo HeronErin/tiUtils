@@ -1,4 +1,4 @@
-module parseUtils.appHeader;
+module parseUtils.flashHeader;
 import std.stdio;
 
 void getFieldSize(const(ubyte[]) data, size_t index, ref ulong fieldstart, ref ulong fieldsize) {
@@ -51,7 +51,14 @@ enum FieldType {
     NumberOfPages,
     DisableSplashScreen,
     MaxHardwareRevision,
-    LowerstBasecode
+    LowerstBasecode,
+
+    CalculatorIdRequired,
+    ValidationNumber,
+
+    AboutScreenData,
+    StandardKeyHeader,
+    StandardKeyData,
 }
 
 FieldType[ubyte] idsStartingWith80 = [
@@ -71,13 +78,14 @@ FieldType[ubyte] idsStartingWith80 = [
 import conversion;
 import std.conv;
 
-struct AppHeaderField {
+struct FlashHeaderField {
     FieldType type;
     ubyte[] info;
     ubyte[] data;
     void classify() {
         ubyte firstIdByte = info[0];
         ubyte secoundIdByte = info[1];
+        ubyte lowerSecoundByteNibble = secoundIdByte & 0xF0;
         if (firstIdByte == 0x80 && secoundIdByte == 0x0F)
             type = FieldType.ProgramLength;
         else if (firstIdByte == 0x02)
@@ -86,11 +94,21 @@ struct AppHeaderField {
             type = FieldType.DateStamp;
         else if (firstIdByte == 0)
             type = FieldType.Padding;
+        else if (firstIdByte == 0x04 && lowerSecoundByteNibble == 0x10)
+            type = FieldType.ValidationNumber;
+        else if (firstIdByte == 0x04 && lowerSecoundByteNibble == 0)
+            type = FieldType.CalculatorIdRequired;
+        else if (firstIdByte == 0x05 && lowerSecoundByteNibble == 0x10)
+            type = FieldType.AboutScreenData;
+        else if (firstIdByte == 0x07 && lowerSecoundByteNibble == 0x10)
+            type = FieldType.StandardKeyHeader;
+        else if (firstIdByte == 0x07 && lowerSecoundByteNibble == 0x30)
+            type = FieldType.StandardKeyData;
         else if (firstIdByte == 0x80) {
-            if ((secoundIdByte & 0xF0) in idsStartingWith80)
-                type = idsStartingWith80[secoundIdByte & 0xF0];
+            if (lowerSecoundByteNibble in idsStartingWith80)
+                type = idsStartingWith80[lowerSecoundByteNibble];
             else
-                secoundIdByte.writeln;
+                assert(0, "Unknown 0x80 style header: " ~ lowerSecoundByteNibble.to!string);
         }
     }
 
@@ -131,11 +149,11 @@ struct AppHeaderField {
     }
 }
 
-static AppHeaderField[] headerGen(ubyte[] data, ref size_t index) {
-    AppHeaderField[] fields;
+static FlashHeaderField[] headerGen(ubyte[] data, ref size_t index) {
+    FlashHeaderField[] fields;
     size_t fieldStart, fieldSize;
     while (true) {
-        AppHeaderField field;
+        FlashHeaderField field;
 
         getFieldSize(data, index, fieldStart, fieldSize);
 
@@ -161,7 +179,7 @@ static AppHeaderField[] headerGen(ubyte[] data, ref size_t index) {
                 index--;
                 return fields;
             }
-            AppHeaderField padding;
+            FlashHeaderField padding;
             padding.info = data[old_index .. index - 1];
             padding.classify;
             fields ~= padding;

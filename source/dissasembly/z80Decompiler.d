@@ -2,7 +2,7 @@ module dissasembly.z80Decompiler;
 import std.conv;
 import std.format;
 import dissasembly.z80;
-import parseUtils.appHeader;
+import parseUtils.flashHeader;
 
 class Label {
     ushort addr;
@@ -27,7 +27,7 @@ class Label {
 
 enum LineVarity {
     AsmInstruction,
-    AppHeaderField,
+    FlashHeaderField,
     AssemblersNote, // Comment used to alert user of something
     Data,
     Label,
@@ -41,7 +41,7 @@ struct DecompLine {
     ubyte[] data;
     union {
         Instruction asmInstruction;
-        AppHeaderField header;
+        FlashHeaderField header;
         ushort bcall;
         bool isAsciiData;
         Label label;
@@ -50,7 +50,7 @@ struct DecompLine {
     size_t getSize() {
         if (lineVarity == LineVarity.AsmInstruction)
             return asmInstruction.byteSize;
-        if (lineVarity == LineVarity.AppHeaderField)
+        if (lineVarity == LineVarity.FlashHeaderField)
             return header.info.length + header.data.length;
         if (lineVarity == LineVarity.Data)
             return data.length;

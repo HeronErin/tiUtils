@@ -12,12 +12,10 @@ const ubyte[] hashmap = [
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // HIJKLMNO
 ];
 
-T popNum(T)(ubyte[] hex, ref size_t index)
-{
+T popNum(T)(ubyte[] hex, ref size_t index) {
     T ret;
     ubyte upper, lower;
-    static foreach (currentByte; 0 .. T.sizeof)
-    {
+    static foreach (currentByte; 0 .. T.sizeof) {
         upper = hashmap[(hex[index++] & 0x1F) ^ 0x10] << 4 & 0xF0;
         lower = hashmap[(hex[index++] & 0x1F) ^ 0x10];
         ret |= cast(T)(upper | lower) << ((T.sizeof - currentByte - 1) * 8);
@@ -25,14 +23,12 @@ T popNum(T)(ubyte[] hex, ref size_t index)
     return ret;
 }
 
-ubyte[] bulkHexDecode(ubyte[] hex, size_t size, ref size_t index, ref ubyte checksum)
-{
+ubyte[] bulkHexDecode(ubyte[] hex, size_t size, ref size_t index, ref ubyte checksum) {
     size_t endIndex = index + size * 2;
     size_t dataIndex = 0;
     ubyte upper, lower;
     ubyte[] data = new ubyte[size];
-    while (index < endIndex)
-    {
+    while (index < endIndex) {
         upper = hashmap[(hex[index++] & 0x1F) ^ 0x10] << 4 & 0xF0;
         lower = hashmap[(hex[index++] & 0x1F) ^ 0x10];
         checksum += cast(ubyte) upper | lower;
@@ -41,13 +37,11 @@ ubyte[] bulkHexDecode(ubyte[] hex, size_t size, ref size_t index, ref ubyte chec
     return data;
 }
 
-class IntellHexError : Exception
-{
+class IntellHexError : Exception {
     mixin basicExceptionCtors;
 }
 
-enum RecordType : ubyte
-{
+enum RecordType : ubyte {
     Data = 0,
     EndOfFile,
     ExtendedSegmentAddress,
@@ -61,18 +55,14 @@ import std.array : appender;
 
 auto hex = singleSpec("%x");
 
-struct HexLine
-{
+struct HexLine {
     ubyte count;
     ushort addr;
     RecordType recordType;
     ubyte[] data;
     ubyte sum;
 
-    uint appliedExtendedAddress = -1;
-
-    void toString(scope void delegate(const(char)[]) sink) const
-    {
+    void toString(scope void delegate(const(char)[]) sink) const {
         import std.format;
 
         auto str = appender!string();
@@ -91,13 +81,11 @@ import std.stdio;
 import std.algorithm.searching;
 
 // https://en.wikipedia.org/wiki/Intel_HEX
-HexLine[] getIntellHexLines(ubyte[] intellhex)
-{
+HexLine[] getIntellHexLines(ubyte[] intellhex) {
     size_t currentLine = 1;
     size_t index;
     HexLine[] lines;
-    while (true)
-    {
+    while (true) {
         scope (exit)
             currentLine += 1;
 
@@ -126,53 +114,61 @@ HexLine[] getIntellHexLines(ubyte[] intellhex)
     return lines;
 }
 
-struct HexData
-{
+struct HexData {
     ubyte[] data;
     ushort startingAddress;
     ushort endingAddress;
-    uint extendedSegmentAddress;
+
+    // TI wants to be special and uses Extended Segment Address specify what page you are on
+    ushort declaredPageInfo = 0xFFFF;
 }
 
-HexData[] groupHexLines(HexLine[] lines)
-{
+// https://merthsoft.com/linkguide/ti83+/fformat.html
+HexData[] groupHexLines(HexLine[] lines) {
     HexData[] groups;
     HexData currentGroup;
     bool isFirstDataline = true;
-    foreach (HexLine line; lines)
-    {
-        switch (line.recordType)
-        {
-        case RecordType.ExtendedSegmentAddress:
-            currentGroup.extendedSegmentAddress = (*cast(ushort*) line.data.ptr) * 16;
-            break;
-        case RecordType.Data:
-            line.appliedExtendedAddress = line.addr + currentGroup.extendedSegmentAddress;
-            if (isFirstDataline){
-                NEW_GROUP:
-                currentGroup.data = line.data;
-                currentGroup.startingAddress = line.addr;
-                currentGroup.endingAddress = line.addr + line.count & 0xFFFF;
-                isFirstDataline = false;
+    foreach (HexLine line; lines) {
+        switch (line.recordType) {
+            case RecordType.ExtendedSegmentAddress:
+                if (!isFirstDataline) {
+                    groups ~= currentGroup;
+                    HexData newGroup;
+                    currentGroup = newGroup;
+                    isFirstDataline = true;
+                }
+                // Big-endian
+                currentGroup.declaredPageInfo = (line.data[1] + (line.data[0] << 8)) & 0xFFFF;
                 break;
-            }
-            if (currentGroup.endingAddress == line.addr){
+            case RecordType.Data:
+                if (isFirstDataline) {
+                    currentGroup.data = line.data;
+                    currentGroup.startingAddress = line.addr;
+                    currentGroup.endingAddress = line.addr + line.count & 0xFFFF;
+                    isFirstDataline = false;
+                    break;
+                }
+                if (currentGroup.endingAddress != line.addr) {
+                    throw new IntellHexError("Unexpected non-contiguous memory!");
+                }
                 currentGroup.data ~= line.data;
                 currentGroup.endingAddress += line.count;
                 break;
-            }
-            // Multipage apps
-            groups ~= currentGroup;
-            HexData newGroup;
-            currentGroup = newGroup;
-            goto NEW_GROUP;
-        case RecordType.EndOfFile:
-            break;
-        default:
-            assert(0, "Unsupported record type: " ~ line.recordType.to!string);
+
+            case RecordType.EndOfFile:
+                if (!isFirstDataline) {
+                    groups ~= currentGroup;
+                    HexData newGroup;
+                    currentGroup = newGroup;
+                    isFirstDataline = true;
+                }
+                break;
+            default:
+                assert(0, "Unsupported record type: " ~ line.recordType.to!string);
         }
     }
-    groups ~= currentGroup;
+    if (!isFirstDataline)
+        groups ~= currentGroup;
     return groups;
 }
 

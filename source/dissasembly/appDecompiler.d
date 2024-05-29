@@ -1,10 +1,10 @@
 module dissasembly.appDecompiler;
 import dissasembly.z80;
-import parseUtils.appHeader;
+import parseUtils.flashHeader;
 import dissasembly.z80Decompiler;
 
 struct AppPage {
-    AppHeaderField[] fields;
+    FlashHeaderField[] fields;
     DecompilerUnit decomUnit;
 }
 

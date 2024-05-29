@@ -5,6 +5,7 @@ import std.file;
 import std.stdio;
 
 import std.string : format;
+
 string humanReadableSize(ulong bytes) {
     import std.conv : to;
 
@@ -20,15 +21,28 @@ string humanReadableSize(ulong bytes) {
     return format("%.2f %s", size, units[unitIndex]);
 }
 
-string toHex(T)(T data){
+string toHex(ubyte data) {
     return format("%02X", data);
+}
+
+string toHex(ubyte[] data) {
+    string s = "[";
+    foreach (i, ubyte ub; data) {
+        s ~= ub.toHex ~ "h";
+        if (i + 1 != data.length)
+            s ~= ", ";
+    }
+    return s ~ "]";
 }
 
 import parseUtils.baseFile;
 
-void appFormatSpecificInfo(string pathToBin) {
-    import parseUtils.intellHex;
+private void flashFormatSpecificInfo(string pathToBin) {
     import parseUtils.flashFile;
+    
+    // ================================================
+    // ||          FILE HEADER INFOMATION            ||
+    // ================================================
 
     auto binFile = genFlashFileParser();
     binFile.fromFile(pathToBin);
@@ -53,9 +67,9 @@ void appFormatSpecificInfo(string pathToBin) {
     bts[3].toHex.writeln;
 
     write("\tName: \"");
-    (cast(string)binFile.findById("Name").data).write;
+    (cast(string) binFile.findById("Name").data).write;
     write("\" (");
-    binFile.findById("Name").data.write;
+    binFile.findById("Name").data.toHex.write;
     writeln(")");
 
     write("\tDevice Type: ");
@@ -78,12 +92,72 @@ void appFormatSpecificInfo(string pathToBin) {
     write(dt.toHex);
     writeln("h)");
 
-
     write("\tIntellHex length: ");
     writeln(humanReadableSize(binFile.findById("HexData length").as!uint));
+    
+    // ================================================
+    // ||          Binary header information         ||
+    // ================================================
+    
+    import parseUtils.flashHeader;
+    import parseUtils.intellHex;
 
     
+    HexData[] pages = decodeIntellHex(binFile.findById("Data").data);
+    "---------".writeln;
+    foreach (HexData p; pages) {
+        p.declaredPageInfo.writeln;
+    }
 
+    size_t headerLength;
+    
+    // FlashHeaderField[] fields = headerGen(binFile.findById("Data").data, headerLength);
+
+    // write("Binary header information (" ~ humanReadableSize(headerLength) ~ ") consiting of ");
+    // write(fields.length);
+    // writeln(" fields:");
+
+    // decodeIntellHex()
+}
+
+
+private void variableSpecificInfo(string pathToBin) {
+    import parseUtils.intellHex;
+    import parseUtils.variableFiles;
+
+    auto binFile = genVarParser();
+    binFile.fromFile(pathToBin);
+
+    // ================================================
+    // ||          FILE HEADER INFOMATION            ||
+    // ================================================
+
+    write("\tFile comment: \"");
+    write(cast(string) binFile.findById("Comment").data);
+    write("\" ");
+    writeln(binFile.findById("Comment").data.toHex);
+
+    ubyte id = binFile.findById("Var id").as!ubyte;
+    write("\tVariable Type: ");
+    if (isValidTypeId(id))
+        write(cast(TypeID) id);
+    else
+        write("Invalid");
+    writeln(" (" ~ id.toHex ~ "h)");
+
+    write("\tName: \"");
+    (cast(string) binFile.findById("Name").data).write;
+    write("\" (");
+    binFile.findById("Name").data.toHex.write;
+    writeln(")");
+
+    write("\tVersion: ");
+    writeln(binFile.findById("Version").as!ubyte.toHex ~ "h");
+
+    ubyte flag = binFile.findById("Flag").as!ubyte;
+    write("\tFlags: ");
+    write(flag.toHex);
+    writeln(flag & 0x80 ? "h (Archived)" : "h (Not Archived)");    
 }
 
 int getInfoForBinary(string pathToBin) {
@@ -114,14 +188,18 @@ int getInfoForBinary(string pathToBin) {
     write("\tFile Size: ");
     writeln(humanReadableSize(getSize(pathToBin)));
 
-    writeln("In-File information (header data):");
+    writeln("In-File information (link file header information):");
     switch (bext) {
         case BinExt.OS:
         case BinExt.App:
-            appFormatSpecificInfo(pathToBin);
+            flashFormatSpecificInfo(pathToBin);
+            break;
+        case BinExt.BasicOrBinaryProgram:
+            variableSpecificInfo(pathToBin);
             break;
         default:
             assert(0);
     }
+
     return 0;
 }
