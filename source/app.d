@@ -41,13 +41,15 @@ int main(string[] args) {
 
 		return 1;
 	}
-	if (args[1] == "run" && args.length == 3) {
+	import std.string;
+	string midArg = args[1].toLower();
+	if (midArg == "run" && args.length == 3) {
 		return runInteractive(args[2]);
 	}
-	if (args[1] == "info" && args.length == 3) {
+	if (midArg == "info" && args.length == 3) {
 		return getInfoForBinary(args[2]);
 	}
-	else if (args[1] == "create" && args.length == 4) {
+	else if (midArg == "create" && args.length == 4) {
 		return createInteractive(args[2], args[3]);
 	}
 	else {

@@ -150,6 +150,35 @@ private void flashFormatSpecificInfo(string pathToBin, bool isOS) {
         }
 
     }
+    // ================================================
+    // ||                 Signature                  ||
+    // ================================================
+    if (isOS) {
+        size_t sigStart, sigSize, index;
+
+        getFieldSize(pages[$ - 1].data, index, sigStart, sigSize);
+        "Signature on final page: ".write;
+        pages[$ - 1].data[sigStart + index .. sigStart + index + sigSize].toHex.writeln;
+    }
+    else {
+        assert(fields[0].type == FieldType.ProgramLength);
+
+        uint size = makeEndian(*cast(uint*)(fields[0].info.ptr + 2), Endianness.BigEndian);
+        // Master field length
+        size += 6;
+        // Take into acount pages
+        size %= 0x4000;
+
+        size_t index = size;
+
+        size_t sigStart, sigSize;
+
+        getFieldSize(pages[$ - 1].data, index, sigStart, sigSize);
+        index += sigStart;
+
+        "Signature on final page: ".write;
+        pages[$ - 1].data[index .. index + sigSize].toHex.writeln;
+    }
 }
 
 private void variableSpecificInfo(string pathToBin) {
