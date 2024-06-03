@@ -1,7 +1,7 @@
 module interactive.create;
 import std.stdio;
 import std.file;
-import interactive.project;
+import common;
 
 
 int createInteractive(string pathToProj, string pathToBin) {
@@ -31,6 +31,6 @@ int createInteractive(string pathToProj, string pathToBin) {
         stderr.writeln("\" is not a supported extension!");
         return 1;
     }
-    Project p = new Project(pathToProj, pathToBin);
+
     return 0;
 }

@@ -33,7 +33,7 @@ BinParseBlock genVarEntryParser() {
     }
 }
 
-import interactive.project : isValidMember;
+import common : isValidMember;
 enum TypeID : ubyte {
     RealNumber = 0x00,
     RealList = 0x01,

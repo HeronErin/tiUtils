@@ -15,7 +15,7 @@ int main(string[] args) {
 	if (args.length < 2 || args[1] == "-h" || args[1] == "--help" || args[1] == "help") {
 	HELP_SCREEN:
 		writeln(
-			"TiUtils - A powerful, open source, Ti-83+ / Ti-84+ decompiler. (https://github.com/HeronErin/tiUtils)");
+			"TiUtils - A powerful, open source, Ti-83+ / Ti-84+ disassembler. (https://github.com/HeronErin/tiUtils)");
 
 		writeln("Options:\n");
 		static foreach (CommandDesc; [

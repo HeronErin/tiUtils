@@ -11,7 +11,7 @@ The most powerful method of deciphering and learning about a compiled binary for
 ## Basic Usage
 
 ```plaintext
-TiUtils - A powerful, open source, Ti-83+ / Ti-84+ decompiler. (https://github.com/HeronErin/tiUtils)
+TiUtils - A powerful, open source, Ti-83+ / Ti-84+ disassembler. (https://github.com/HeronErin/tiUtils)
 Options:
 
 TI help                                                     -Shows this menu

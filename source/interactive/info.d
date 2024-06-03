@@ -1,9 +1,9 @@
 module interactive.info;
-import interactive.project;
 import std.path;
 import std.file;
 import std.stdio;
 import tern.object;
+import common;
 
 import std.string : format;
 
@@ -100,7 +100,7 @@ private void flashFormatSpecificInfo(string pathToBin, bool isOS) {
     ));
 
     // ================================================
-    // ||          Binary header information         ||
+    // ||          Binary data information           ||
     // ================================================
 
     import parseUtils.flashHeader;

@@ -1,6 +1,6 @@
 module parseUtils.flashFile;
 import parseUtils.baseFile;
-import interactive.project : isValidMember;
+import common : isValidMember;
 
 enum DeviceType : ubyte{
     TI73 = 0x74,
