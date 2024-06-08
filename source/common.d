@@ -2,7 +2,6 @@ module common;
 import std.file;
 import std.path;
 import std.stdio;
-import mir.ser.json : serializeJson;
 import tern.algorithm.searching : contains, indexOf;
 
 string[] listdir(string pathname) {

@@ -46,7 +46,6 @@ string escapeString(const(ubyte[]) input) {
             case '\0':
                 result ~= "\\0";
                 break;
-            // Add more cases for other special characters if needed
             default:
                 result ~= c;
                 break;
