@@ -218,6 +218,17 @@ private void variableSpecificInfo(string pathToBin) {
     write("\tFlags: ");
     write(flag.toHex);
     writeln(flag & 0x80 ? "h (Archived)" : "h (Not Archived)");
+
+    if (id == TypeID.String){
+        "String contents (Interpreted as text):".writeln;
+        stdout.rawWrite(binFile.findById("VarData").data);
+        writeln();
+    }
+    if (id == TypeID.Program || id == TypeID.EditLockedProgram){
+        bool programStart = binFile.findById("VarData").data[0..2] == [0xBB, 0x6D];
+        write("Is marked as being a compiled asm program: ");
+        writeln(programStart);
+    }
 }
 
 int getInfoForBinary(string pathToBin) {
@@ -254,6 +265,8 @@ int getInfoForBinary(string pathToBin) {
         case BinExt.App:
             flashFormatSpecificInfo(pathToBin, bext == BinExt.OS);
             break;
+        case BinExt.Variable:
+        case BinExt.String:
         case BinExt.BasicOrBinaryProgram:
             variableSpecificInfo(pathToBin);
             break;

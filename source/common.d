@@ -15,9 +15,12 @@ string[] listdir(string pathname) {
 
 enum BinExt : string {
     App = ".8xk",
+    String = ".8xs",
+    Variable = ".8xv",
     BasicOrBinaryProgram = ".8xp",
     OS = ".8xu",
 }
+bool isVar(BinExt ext) => ext == BinExt.String || ext == BinExt.Variable;
 
 import std.traits : EnumMembers;
 

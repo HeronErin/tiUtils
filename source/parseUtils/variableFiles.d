@@ -27,7 +27,8 @@ BinParseBlock genVarEntryParser() {
             Field("Version", ubyteField, null),
             Field("Flag", ubyteField, null),
             Field("Var length2", uShortField, null, null),
-            Field("VarData", floatingBytesField, "Var length"),
+            Field("Var length3", uShortField, null, null),
+            Field("VarData", floatingBytesField, "Var length3"),
 
         ]);
     }
