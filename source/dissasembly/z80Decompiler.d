@@ -40,6 +40,7 @@ struct DecompLine {
     LineVarity lineVarity;
     size_t location;
     Label usesLabel = null;
+    
     ubyte[] data;
     union {
         Instruction asmInstruction;

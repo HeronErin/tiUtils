@@ -25,28 +25,28 @@ bool isValidDataType(ubyte value) {
 
 
 BinParseBlock genFlashFileParser(){
-    with (blobContentVariety){
+    with (BlobContentVariety){
         return new BinParseBlock(
             [
-                //     Field id            type of field      depends    byte data                     len (optional)
-                Field("Magic Number",      requiredBytes,      null,      cast(ubyte[]) "**TIFL**"),
-                Field("Major Version",     ubyteField),
-                Field("Minor Version",     ubyteField),
-                Field("Flags",             ubyteField),
-                Field("Object type",       ubyteField),
-                Field("Binary coded date", fixedSizeBytes,     null,      null,                           4),
+                // showToUsr     Field id            type of field      depends    byte data                     len (optional)
+                Field(false,    "Magic Number",      requiredBytes,      null,      cast(ubyte[]) "**TIFL**"),
+                Field(true,     "Major Version",     ubyteField),
+                Field(true,     "Minor Version",     ubyteField),
+                Field(true,     "Flags",             ubyteField),
+                Field(true,     "Object type",       ubyteField),
+                Field(true,     "Binary coded date", fixedSizeBytes,     null,      null,                           4),
 
-                Field("Name length",       ubyteField,        null),
-                Field("Name",              fixedStringFieled, null,       null,                           8),
+                Field(false,    "Name length",       ubyteField,        null),
+                Field(true,     "Name",              fixedStringFieled, null,       null,                           8),
 
-                Field("Filler Data",       fixedSizeBytes,     null,      null,                          23),
-                Field("Device Type",       ubyteField),
-                Field("Data Type",         ubyteField),
-                Field("Filler Data",       fixedSizeBytes,     null,      null,                          24),
+                Field(false,    "Filler Data",       fixedSizeBytes,     null,      null,                          23),
+                Field(true,     "Device Type",       ubyteField),
+                Field(true,     "Data Type",         ubyteField),
+                Field(true,     "Filler Data",       fixedSizeBytes,     null,      null,                          24),
 
                 
-                Field("HexData length",    uintField,        null),
-                Field("Data",              greedyByteField,    null,      null,                           0),
+                Field(false,    "HexData length",    uintField,        null),
+                Field(false,    "Data",              greedyByteField,    null,      null,                           0),
 
 //               Think the spec might be wrong?
 //                 Field("Checksum",          uShortField,     "Data"),

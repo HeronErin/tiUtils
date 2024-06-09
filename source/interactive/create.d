@@ -32,10 +32,19 @@ int createInteractive(string pathToProj, string pathToBin) {
         stderr.writeln("\" is not a supported extension!");
         return 1;
     }
-    if (ext == BinExt.BasicOrBinaryProgram){
+    if (!exists(pathToProj))
+        mkdir(pathToProj);
+    string binPath = buildPath(pathToProj, "original" ~ ext);
+    string srcPath = buildPath(pathToProj, "src");
+    copy(pathToBin, binPath);
+    mkdir(srcPath);
 
+    if (ext == BinExt.BasicOrBinaryProgram){
+        import dissasembly.programDissassembly : createDecompEnvForProgram;
+        createDecompEnvForProgram(pathToProj);
         return 0;
     }else {
         goto InvalidExt;
     }
+    
 }

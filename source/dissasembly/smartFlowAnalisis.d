@@ -1,5 +1,5 @@
 module dissasembly.smartFlowAnalisis;
-import dissasembly.z80Decompiler;
+public import dissasembly.z80Decompiler;
 
 struct RangeInfo {
     ushort start;

@@ -22,19 +22,6 @@ string humanReadableSize(ulong bytes) {
     return format(unitIndex ? "%.2f %s" : "%g %s", size, units[unitIndex]);
 }
 
-string toHex(ubyte data) {
-    return format("%02X", data);
-}
-
-string toHex(ubyte[] data) {
-    string s = "[";
-    foreach (i, ubyte ub; data) {
-        s ~= ub.toHex ~ "h";
-        if (i + 1 != data.length)
-            s ~= ", ";
-    }
-    return s ~ "]";
-}
 
 import parseUtils.baseFile;
 
@@ -96,7 +83,7 @@ private void flashFormatSpecificInfo(string pathToBin, bool isOS) {
     write("\tIntellHex length: ");
     writeln(humanReadableSize(
             makeEndian(*cast(uint*) binFile.findById("HexData length")
-            .data.ptr, Endianness.BigEndian)
+            .data.ptr, Endianness.LittleEndian)
     ));
 
     // ================================================
@@ -173,10 +160,17 @@ private void flashFormatSpecificInfo(string pathToBin, bool isOS) {
 
         size_t sigStart, sigSize;
 
+        if (pages[$ - 1].data[index] != 2){
+            write("Signature on final page appears corrupt!");
+            return;
+        }
         getFieldSize(pages[$ - 1].data, index, sigStart, sigSize);
         index += sigStart;
 
-        "Signature on final page: ".write;
+        "Signature on final page (".write;
+        sigSize.write;
+        " bytes): ".write;
+
         pages[$ - 1].data[index .. index + sigSize].toHex.writeln;
     }
 }
@@ -251,28 +245,22 @@ int getInfoForBinary(string pathToBin) {
         stderr.writeln("\" is NOT a supported Ti file extension!");
         return 1;
     }
-    BinExt bext = cast(BinExt) ext;
+    BinExt binExt = cast(BinExt) ext;
 
     writeln("Basic file overview:");
     write("\tfile type: ");
-    writeln(bext);
+    writeln(binExt);
     write("\tFile Size: ");
     writeln(humanReadableSize(getSize(pathToBin)));
 
     writeln("In-File information (link file header information):");
-    switch (bext) {
-        case BinExt.OS:
-        case BinExt.App:
-            flashFormatSpecificInfo(pathToBin, bext == BinExt.OS);
-            break;
-        case BinExt.Variable:
-        case BinExt.String:
-        case BinExt.BasicOrBinaryProgram:
-            variableSpecificInfo(pathToBin);
-            break;
-        default:
-            assert(0);
-    }
+
+    if (binExt.isFlash)
+        flashFormatSpecificInfo(pathToBin, binExt == BinExt.OS);
+    else if (binExt.isVar)
+        variableSpecificInfo(pathToBin);
+    else
+        assert(0, "Unsupported ext: " ~ ext);
 
     return 0;
 }
