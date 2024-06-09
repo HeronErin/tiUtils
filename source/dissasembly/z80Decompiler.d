@@ -28,7 +28,9 @@ class Label {
 enum LineVarity {
     AsmInstruction,
     FlashHeaderField,
-    AssemblersNote, // Comment used to alert user of something
+    AddedComment,
+    IncludeStatement,
+    OrgLine, // Simple states the current org to the user, this way when stuff is striped the org will fix it in reassembling
     Data,
     Label,
     Bcall
@@ -54,7 +56,7 @@ struct DecompLine {
             return header.info.length + header.data.length;
         if (lineVarity == LineVarity.Data)
             return data.length;
-        if (lineVarity == LineVarity.Label || lineVarity == LineVarity.AssemblersNote)
+        if (lineVarity == LineVarity.Label || lineVarity == LineVarity.AddedComment)
             return 0;
         if (lineVarity == LineVarity.Bcall)
             return 3;
@@ -108,7 +110,7 @@ string toAsm(DecompilerUnit unit) {
     foreach (DecompLine line; unit.lines) {
         scope (exit)
             location += line.getSize;
-        if (line.lineVarity != LineVarity.AssemblersNote)
+        if (line.lineVarity != LineVarity.AddedComment)
             foreach (DecompLine label; unit.labels) {
                 if (label.label.addr == location)
                     assembly ~= label.label.genName ~ ":\n";
@@ -131,7 +133,7 @@ string toAsm(DecompilerUnit unit) {
                     assembly ~= "\t" ~ bytesToDefb(line.data) ~ "\n";
                 }
                 break;
-            case LineVarity.AssemblersNote:
+            case LineVarity.AddedComment:
                 assembly ~= "; " ~ (cast(string) line.data) ~ "\n";
                 break;
             default:

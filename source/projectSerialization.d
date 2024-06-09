@@ -20,6 +20,3 @@ struct SerStep{
 
     string data;
 }
-
-
-

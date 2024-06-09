@@ -26,11 +26,16 @@ int createInteractive(string pathToProj, string pathToBin) {
     import std.path;
     string ext = extension(pathToBin);
     if (!isValidExt(ext)){
+        InvalidExt:
         stderr.write("Error: \"");
         stderr.write(ext);
         stderr.writeln("\" is not a supported extension!");
         return 1;
     }
+    if (ext == BinExt.BasicOrBinaryProgram){
 
-    return 0;
+        return 0;
+    }else {
+        goto InvalidExt;
+    }
 }
