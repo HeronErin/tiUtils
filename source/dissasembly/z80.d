@@ -4,6 +4,25 @@ import std.string : strip;
 import std.stdio;
 import tern.typecons.common : Nullable, nullable;
 
+enum Operand[] Reg8_rrr = [
+    OR8(Register.B), OR8(Register.C), OR8(Register.D), OR8(Register.E),
+    OR8(Register.H), OR8(Register.L), OR8(Register.UNKNOWN), OR8(Register.A)
+];
+enum Operand[] Reg8_j = [
+    OR8(Register.IXH), OR8(Register.IXL), OR8(Register.IYH), OR8(Register.IYL)
+];
+enum Operand[] Reg16_qq = [
+    OR16(Register.BC), OR16(Register.DE), OR16(Register.HL), OR16(Register.SP)
+];
+enum Operand[] Reg16_pp = [
+    OR16(Register.BC), OR16(Register.DE), OR16(Register.HL), OR16(Register.AF)
+];
+enum Operand[] Condition_ccc = [
+    Con(ConditionVariety.NZ), Con(ConditionVariety.Z), Con(ConditionVariety.NC),
+    Con(ConditionVariety.C), Con(ConditionVariety.PO), Con(ConditionVariety.PE),
+    Con(ConditionVariety.P), Con(ConditionVariety.M)
+];
+
 enum Register : ubyte {
     UNKNOWN,
     A,
@@ -107,120 +126,103 @@ struct Operand {
     }
 }
 
-Operand OR8(Register register) {
+private struct OPAIR {
+    const(ubyte) mask;
+    const(Operand) operand;
+}
+
+pure Operand OR8(Register register) {
     Operand operand;
     operand.variety = OperandVariety.Reg8;
     operand.register = register;
     return operand;
 }
-// Used for when specified masks in an opcode specify the register
-const Operand[] Reg8_rrr = [
-    OR8(Register.B), OR8(Register.C), OR8(Register.D), OR8(Register.E),
-    OR8(Register.H), OR8(Register.L), OR8(Register.UNKNOWN), OR8(Register.A)
-];
-const Operand[] Reg8_j = [
-    OR8(Register.IXH), OR8(Register.IXL), OR8(Register.IYH), OR8(Register.IYL)
-];
 
-Operand OR16(Register register) {
+pure Operand OR16(Register register) {
     Operand operand;
     operand.variety = OperandVariety.Reg16;
     operand.register = register;
     return operand;
 }
-// Maybe Hl??
-const Operand[] Reg16_qq = [
-    OR16(Register.BC), OR16(Register.DE), OR16(Register.HL), OR16(Register.SP)
-];
-const Operand[] Reg16_pp = [
-    OR16(Register.BC), OR16(Register.DE), OR16(Register.HL), OR16(Register.AF)
-];
-const Operand[] Reg16_I = [OR16(Register.IX), OR16(Register.IY)];
 
-Operand OR16_LK(Register register) {
+pure Operand OR16_LK(Register register) {
     Operand operand;
     operand.variety = OperandVariety.Reg16Lookup;
     operand.register = register;
     return operand;
 }
 
-Operand IMM8() {
+pure Operand IMM8() {
     Operand operand;
     operand.variety = OperandVariety.Imm8;
     return operand;
 }
 
-Operand IMM8_LK() {
+pure Operand IMM8_LK() {
     Operand operand;
     operand.variety = OperandVariety.Imm8Lookup;
     return operand;
 }
 
-Operand OR8_LK(Register r) {
+pure Operand OR8_LK(Register r) {
     Operand operand;
     operand.variety = OperandVariety.Reg8Lookup;
     operand.register = r;
     return operand;
 }
 
-Operand PIMM8(ubyte ub) {
+pure Operand PIMM8(ubyte ub) {
     Operand operand;
     operand.variety = OperandVariety.PreSetImm8;
     operand.imm8 = ub;
     return operand;
 }
 
-Operand IX() {
+pure Operand IX() {
     Operand operand;
     operand.variety = OperandVariety.IxOffset;
     return operand;
 }
 
-Operand IY() {
+pure Operand IY() {
     Operand operand;
     operand.variety = OperandVariety.IyOffset;
     return operand;
 }
 
-Operand LIMM8() {
+pure Operand LIMM8() {
     Operand operand;
     operand.variety = OperandVariety.Imm8;
     operand.isLabel = true;
     return operand;
 }
 
-Operand LIMM16() {
+pure Operand LIMM16() {
     Operand operand;
     operand.variety = OperandVariety.Imm16;
     operand.isLabel = true;
     return operand;
 }
 
-Operand IMM16() {
+pure Operand IMM16() {
     Operand operand;
     operand.variety = OperandVariety.Imm16;
 
     return operand;
 }
 
-Operand IMM16_LK() {
+pure Operand IMM16_LK() {
     Operand operand;
     operand.variety = OperandVariety.Imm16Lookup;
     return operand;
 }
 
-Operand Con(ConditionVariety condition) {
+pure Operand Con(ConditionVariety condition) {
     Operand operand;
     operand.variety = OperandVariety.Condition;
     operand.condition = condition;
     return operand;
 }
-
-const Operand[] Condition_ccc = [
-    Con(ConditionVariety.NZ), Con(ConditionVariety.Z), Con(ConditionVariety.NC),
-    Con(ConditionVariety.C), Con(ConditionVariety.PO), Con(ConditionVariety.PE),
-    Con(ConditionVariety.P), Con(ConditionVariety.M)
-];
 
 string asOpString(InstructionType type) {
     import std.conv : to;
@@ -243,7 +245,7 @@ Nullable!Operand findOfOperandVariety(Instruction inst, OperandVariety variety) 
 struct Instruction {
     InstructionType type;
     Operand[] operands;
-    Instruction[ubyte] indirection = null;
+    Instruction[] indirection = null;
     bool isIBitIndirection = false;
     ubyte[] unknownData = null;
     size_t byteSize = -1;
@@ -411,224 +413,203 @@ enum InstructionType {
     Inir
 }
 
-private Instruction[ubyte] genMainInstructions() {
-    Instruction[ubyte] instructions;
-
-    instructions[0] = Instruction(InstructionType.Nop);
-    instructions[0x02] = Instruction(InstructionType.Ld, [
-            OR16_LK(Register.BC), OR8(Register.A)
+private pure Instruction[0xFF + 1] MiscIndirection() {
+    Instruction[0xFF + 1] instructions = new Instruction[0xFF + 1];
+        instructions[0x00] = Instruction(InstructionType.In0, [
+            OR8(Register.B), IMM8_LK
         ]);
-    instructions[0x07] = Instruction(InstructionType.Rlca, []);
-    instructions[0x08] = Instruction(InstructionType.Ex, [
-            OR16(Register.AF), OR16(Register.SHADOW_AF)
+    instructions[0x01] = Instruction(InstructionType.Out0, [
+            IMM8_LK, OR8(Register.B)
         ]);
-    instructions[0x0A] = Instruction(InstructionType.Ld, [
-            OR8(Register.A), OR16_LK(Register.BC)
+    instructions[0x04] = Instruction(InstructionType.Tst, [OR8(Register.B)]);
+    instructions[0x08] = Instruction(InstructionType.In0, [
+            OR8(Register.C), IMM8_LK
         ]);
-    instructions[0x0F] = Instruction(InstructionType.Rrca, []);
-    instructions[0x10] = Instruction(InstructionType.Djnz, [LIMM8]);
-    instructions[0x17] = Instruction(InstructionType.Rla, []);
-    instructions[0x18] = Instruction(InstructionType.Jr, [LIMM8]);
-    instructions[0x1a] = Instruction(InstructionType.Ld, [
-            OR8(Register.A), OR16_LK(Register.DE)
+    instructions[0x09] = Instruction(InstructionType.Out0, [
+            IMM8_LK, OR8(Register.C)
         ]);
-    instructions[0x3a] = Instruction(InstructionType.Ld, [
-            OR8(Register.A), IMM16_LK
+    instructions[0x0C] = Instruction(InstructionType.Tst, [OR8(Register.C)]);
+    instructions[0x10] = Instruction(InstructionType.In0, [
+            OR8(Register.D), IMM8_LK
         ]);
-    instructions[0x1F] = Instruction(InstructionType.Rra, []);
-    instructions[0x27] = Instruction(InstructionType.Daa, []);
-    instructions[0x2F] = Instruction(InstructionType.Cpl, []);
-    instructions[0x37] = Instruction(InstructionType.Scf, []);
-    instructions[0x3f] = Instruction(InstructionType.Ccf, []);
-    instructions[0x76] = Instruction(InstructionType.Halt, []);
-    instructions[0x34] = Instruction(InstructionType.Inc, [OR16_LK(Register.HL)]);
-    instructions[0x35] = Instruction(InstructionType.Dec, [OR16_LK(Register.HL)]);
-
-    instructions[0x12] = Instruction(InstructionType.Ld, [
-            OR16_LK(Register.DE), OR8(Register.A)
+    instructions[0x11] = Instruction(InstructionType.Out0, [
+            IMM8_LK, OR8(Register.D)
         ]);
-    instructions[0x22] = Instruction(InstructionType.Ld, [
+    instructions[0x14] = Instruction(InstructionType.Tst, [OR8(Register.D)]);
+    instructions[0x18] = Instruction(InstructionType.In0, [
+            OR8(Register.E), IMM8_LK
+        ]);
+    instructions[0x19] = Instruction(InstructionType.Out0, [
+            IMM8_LK, OR8(Register.E)
+        ]);
+    instructions[0x1C] = Instruction(InstructionType.Tst, [OR8(Register.E)]);
+    instructions[0x20] = Instruction(InstructionType.In0, [
+            OR8(Register.H), IMM8_LK
+        ]);
+    instructions[0x21] = Instruction(InstructionType.Out0, [
+            IMM8_LK, OR8(Register.H)
+        ]);
+    instructions[0x24] = Instruction(InstructionType.Tst, [OR8(Register.H)]);
+    instructions[0x28] = Instruction(InstructionType.In0, [
+            OR8(Register.L), IMM8_LK
+        ]);
+    instructions[0x29] = Instruction(InstructionType.Out0, [
+            IMM8_LK, OR8(Register.L)
+        ]);
+    instructions[0x2C] = Instruction(InstructionType.Tst, [OR8(Register.L)]);
+    instructions[0x34] = Instruction(InstructionType.Tst, [OR16_LK(Register.HL)]);
+    instructions[0x38] = Instruction(InstructionType.In0, [
+            OR8(Register.A), IMM8_LK
+        ]);
+    instructions[0x39] = Instruction(InstructionType.Out0, [
+            IMM8_LK, OR8(Register.A)
+        ]);
+    instructions[0x3C] = Instruction(InstructionType.Tst, [OR8(Register.A)]);
+    instructions[0x40] = Instruction(InstructionType.In, [
+            OR8(Register.B), OR8_LK(Register.C)
+        ]);
+    instructions[0x41] = Instruction(InstructionType.Out, [
+            OR8_LK(Register.C), OR8(Register.B)
+        ]);
+    instructions[0x42] = Instruction(InstructionType.Sbc, [
+            OR16(Register.HL), OR16(Register.BC)
+        ]);
+    instructions[0x43] = Instruction(InstructionType.Ld, [
+            IMM16_LK, OR16(Register.BC)
+        ]);
+    instructions[0x44] = Instruction(InstructionType.Neg, []);
+    instructions[0x45] = Instruction(InstructionType.Retn, []);
+    instructions[0x46] = Instruction(InstructionType.Im, [PIMM8(0)]);
+    instructions[0x47] = Instruction(InstructionType.Ld, [
+            OR8(Register.I), OR8(Register.A)
+        ]);
+    instructions[0x48] = Instruction(InstructionType.In, [
+            OR8(Register.C), OR8_LK(Register.C)
+        ]);
+    instructions[0x49] = Instruction(InstructionType.Out, [
+            OR8_LK(Register.C), OR8(Register.C)
+        ]);
+    instructions[0x4A] = Instruction(InstructionType.Adc, [
+            OR16(Register.HL), OR16(Register.BC)
+        ]);
+    instructions[0x4B] = Instruction(InstructionType.Ld, [
+            OR16(Register.BC), IMM16_LK
+        ]);
+    instructions[0x4C] = Instruction(InstructionType.Mlt, [OR16(Register.BC)]);
+    instructions[0x4D] = Instruction(InstructionType.Reti, []);
+    instructions[0x4F] = Instruction(InstructionType.Ld, [
+            OR8(Register.R), OR8(Register.A)
+        ]);
+    instructions[0x50] = Instruction(InstructionType.In, [
+            OR8(Register.D), OR8_LK(Register.C)
+        ]);
+    instructions[0x51] = Instruction(InstructionType.Out, [
+            OR8_LK(Register.C), OR8(Register.D)
+        ]);
+    instructions[0x52] = Instruction(InstructionType.Sbc, [
+            OR16(Register.HL), OR16(Register.DE)
+        ]);
+    instructions[0x53] = Instruction(InstructionType.Ld, [
+            IMM16_LK, OR16(Register.DE)
+        ]);
+    instructions[0x56] = Instruction(InstructionType.Im, [PIMM8(1)]);
+    instructions[0x57] = Instruction(InstructionType.Ld, [
+            OR8(Register.A), OR8(Register.I)
+        ]);
+    instructions[0x58] = Instruction(InstructionType.In, [
+            OR8(Register.E), OR8_LK(Register.C)
+        ]);
+    instructions[0x59] = Instruction(InstructionType.Out, [
+            OR8_LK(Register.C), OR8(Register.E)
+        ]);
+    instructions[0x5A] = Instruction(InstructionType.Adc, [
+            OR16(Register.HL), OR16(Register.DE)
+        ]);
+    instructions[0x5B] = Instruction(InstructionType.Ld, [
+            OR16(Register.DE), IMM16_LK
+        ]);
+    instructions[0x5C] = Instruction(InstructionType.Mlt, [OR16(Register.DE)]);
+    instructions[0x5E] = Instruction(InstructionType.Im, [PIMM8(2)]);
+    instructions[0x5F] = Instruction(InstructionType.Ld, [
+            OR8(Register.A), OR8(Register.R)
+        ]);
+    instructions[0x60] = Instruction(InstructionType.In, [
+            OR8(Register.H), OR8_LK(Register.C)
+        ]);
+    instructions[0x61] = Instruction(InstructionType.Out, [
+            OR8_LK(Register.C), OR8(Register.H)
+        ]);
+    instructions[0x62] = Instruction(InstructionType.Sbc, [
+            OR16(Register.HL), OR16(Register.HL)
+        ]);
+    instructions[0x63] = Instruction(InstructionType.Ld, [
             IMM16_LK, OR16(Register.HL)
         ]);
-    instructions[0x32] = Instruction(InstructionType.Ld, [
-            IMM16_LK, OR8(Register.A)
+    instructions[0x64] = Instruction(InstructionType.Tst, [IMM8]);
+    instructions[0x67] = Instruction(InstructionType.Rrd, []);
+    instructions[0x68] = Instruction(InstructionType.In, [
+            OR8(Register.L), OR8_LK(Register.C)
         ]);
-    instructions[0x36] = Instruction(InstructionType.Ld, [
-            OR16_LK(Register.HL), IMM8
+    instructions[0x69] = Instruction(InstructionType.Out, [
+            OR8_LK(Register.C), OR8(Register.L)
         ]);
-
-    instructions[0x2A] = Instruction(InstructionType.Ld, [
+    instructions[0x6A] = Instruction(InstructionType.Adc, [
+            OR16(Register.HL), OR16(Register.HL)
+        ]);
+    instructions[0x6B] = Instruction(InstructionType.Ld, [
             OR16(Register.HL), IMM16_LK
         ]);
-
-    instructions[0x20] = Instruction(InstructionType.Jr, [
-            Con(ConditionVariety.NZ), LIMM8
+    instructions[0x6C] = Instruction(InstructionType.Mlt, [OR16(Register.HL)]);
+    instructions[0x6F] = Instruction(InstructionType.Rld, []);
+    instructions[0x70] = Instruction(InstructionType.In, [OR8_LK(Register.C)]);
+    instructions[0x71] = Instruction(InstructionType.Out, [
+            OR8_LK(Register.C), PIMM8(0)
         ]);
-    instructions[0x28] = Instruction(InstructionType.Jr, [
-            Con(ConditionVariety.Z), LIMM8
+    instructions[0x72] = Instruction(InstructionType.Sbc, [
+            OR16(Register.HL), OR16(Register.SP)
         ]);
-    instructions[0x30] = Instruction(InstructionType.Jr, [
-            Con(ConditionVariety.NC), LIMM8
+    instructions[0x73] = Instruction(InstructionType.Ld, [
+            IMM16_LK, OR16(Register.SP)
         ]);
-    instructions[0x38] = Instruction(InstructionType.Jr, [
-            Con(ConditionVariety.C), LIMM8
+    instructions[0x74] = Instruction(InstructionType.Tstio, [IMM8]);
+    instructions[0x76] = Instruction(InstructionType.Slp, []);
+    instructions[0x78] = Instruction(InstructionType.In, [
+            OR8(Register.A), OR8_LK(Register.C)
         ]);
-
-    instructions[0x86] = Instruction(InstructionType.Add, [
-            OR8(Register.A), OR16_LK(Register.HL)
+    instructions[0x79] = Instruction(InstructionType.Out, [
+            OR8_LK(Register.C), OR8(Register.A)
         ]);
-    instructions[0x8E] = Instruction(InstructionType.Adc, [
-            OR8(Register.A), OR16_LK(Register.HL)
+    instructions[0x7A] = Instruction(InstructionType.Adc, [
+            OR16(Register.HL), OR16(Register.SP)
         ]);
-    instructions[0x9E] = Instruction(InstructionType.Sbc, [
-            OR8(Register.A), OR16_LK(Register.HL)
+    instructions[0x7B] = Instruction(InstructionType.Ld, [
+            OR16(Register.SP), IMM16_LK
         ]);
-    instructions[0xDE] = Instruction(InstructionType.Sbc, [
-            OR8(Register.A), IMM8
-        ]);
-    instructions[0xa6] = Instruction(InstructionType.And, [OR16_LK(Register.HL)]);
-    instructions[0xb6] = Instruction(InstructionType.Or, [OR16_LK(Register.HL)]);
-    instructions[0x96] = Instruction(InstructionType.Sub, [OR16_LK(Register.HL)]);
-    instructions[0xae] = Instruction(InstructionType.Xor, [OR16_LK(Register.HL)]);
-    instructions[0xbe] = Instruction(InstructionType.Cp, [OR16_LK(Register.HL)]);
-    instructions[0xc3] = Instruction(InstructionType.Jp, [LIMM16]);
-    instructions[0xc9] = Instruction(InstructionType.Ret, []);
-    instructions[0xcb] = Instruction(InstructionType.Indirection, [], BitIndirection());
-    instructions[0xdd] = Instruction(InstructionType.Indirection, [], IxIndirection());
-    instructions[0xed] = Instruction(InstructionType.Indirection, [], MiscIndirection());
-    instructions[0xfd] = Instruction(InstructionType.Indirection, [], IyIndirection());
-
-    instructions[0xc6] = Instruction(InstructionType.Add, [
-            OR8(Register.A), IMM8
-        ]);
-    instructions[0xd3] = Instruction(InstructionType.Out, [
-            IMM8, OR8(Register.A)
-        ]);
-    instructions[0xd6] = Instruction(InstructionType.Sub, [IMM8]);
-    instructions[0xd9] = Instruction(InstructionType.Exx, []);
-    instructions[0xdb] = Instruction(InstructionType.In, [OR8(Register.A), IMM8]);
-
-    instructions[0xCD] = Instruction(InstructionType.Call, [LIMM16]);
-    instructions[0xCE] = Instruction(InstructionType.Adc, [
-            OR8(Register.A), IMM8
-        ]);
-
-    instructions[0xe3] = Instruction(InstructionType.Ex, [
-            OR16_LK(Register.SP), OR16(Register.HL)
-        ]);
-    instructions[0xe6] = Instruction(InstructionType.And, [IMM8]);
-    instructions[0xe9] = Instruction(InstructionType.Jp, [OR16_LK(Register.HL)]);
-    instructions[0xeb] = Instruction(InstructionType.Ex, [
-            OR16(Register.DE), OR16(Register.HL)
-        ]);
-    instructions[0xee] = Instruction(InstructionType.Xor, [IMM8]);
-    instructions[0xf6] = Instruction(InstructionType.Or, [IMM8]);
-    instructions[0xfe] = Instruction(InstructionType.Cp, [IMM8]);
-    instructions[0xf3] = Instruction(InstructionType.Di, []);
-    instructions[0xfb] = Instruction(InstructionType.Ei, []);
-    instructions[0xf9] = Instruction(InstructionType.Ld, [
-            OR16(Register.SP), OR16(Register.HL)
-        ]);
-    static foreach (i, cond; Condition_ccc) {
-        instructions[0b1100_0100 | (i << 3)] = Instruction(InstructionType.Call, [
-                cond, LIMM16
-            ]);
-        instructions[0b1100_0010 | (i << 3)] = Instruction(InstructionType.Jp, [
-                cond, LIMM16
-            ]);
-        instructions[0b1100_0000 | (i << 3)] = Instruction(InstructionType.Ret, [
-                cond
-            ]);
-    }
-    static foreach (rst_v; 0 .. 0b111 + 1) {
-        {
-            Operand rstOperand;
-            rstOperand.variety = OperandVariety.Rst;
-            rstOperand.rst = [0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38][rst_v];
-            instructions[0b1100_0111 | (rst_v << 3)] = Instruction(InstructionType.Rst, [
-                    rstOperand
-                ]);
-        }
-    }
-    static foreach (i, opr; Reg8_rrr)
-        if (opr.register != Register.UNKNOWN) {
-            instructions[0b0111_0000 | i] = Instruction(InstructionType.Ld, [
-                    OR16_LK(Register.HL), opr
-                ]);
-            instructions[0b1000_1000 | i] = Instruction(InstructionType.Adc, [
-                    OR8(Register.A), opr
-                ]);
-            instructions[0b1000_0000 | i] = Instruction(InstructionType.Add, [
-                    OR8(Register.A), opr
-                ]);
-            instructions[0b1010_0000 | i] = Instruction(InstructionType.And, [
-                    opr
-                ]);
-            instructions[0b1011_1000 | i] = Instruction(InstructionType.Cp, [
-                    opr
-                ]);
-            instructions[0b1011_0000 | i] = Instruction(InstructionType.Or, [
-                    opr
-                ]);
-            instructions[0b0000_0101 | (i << 3)] = Instruction(InstructionType.Dec, [
-                    opr
-                ]);
-            instructions[0b0000_0100 | (i << 3)] = Instruction(InstructionType.Inc, [
-                    opr
-                ]);
-            instructions[0b0000_0110 | (i << 3)] = Instruction(InstructionType.Ld, [
-                    opr, IMM8
-                ]);
-            instructions[0b0100_0110 | (i << 3)] = Instruction(InstructionType.Ld, [
-                    opr, OR16_LK(Register.HL)
-                ]);
-            instructions[0b1001_1000 | i] = Instruction(InstructionType.Sbc, [
-                    OR8(Register.A), opr
-                ]);
-            instructions[0b1001_0000 | i] = Instruction(InstructionType.Sub, [
-                    opr
-                ]);
-            instructions[0b1010_1000 | i] = Instruction(InstructionType.Xor, [
-                    opr
-                ]);
-
-        }
-    static foreach (i, opr; Reg16_pp) {
-        instructions[0b1100_0001 | (i << 4)] = Instruction(InstructionType.Pop, [
-                opr
-            ]);
-        instructions[0b1100_0101 | (i << 4)] = Instruction(InstructionType.Push, [
-                opr
-            ]);
-    }
-    static foreach (i, opr; Reg16_qq) {
-        instructions[0b0000_1001 | (i << 4)] = Instruction(InstructionType.Add, [
-                OR16(Register.HL), opr
-            ]);
-        instructions[0b0000_1011 | (i << 4)] = Instruction(InstructionType.Dec, [
-                opr
-            ]);
-        instructions[0b0000_0011 | (i << 4)] = Instruction(InstructionType.Inc, [
-                opr
-            ]);
-        instructions[0b0000_0001 | (i << 4)] = Instruction(InstructionType.Ld, [
-                opr, IMM16
-            ]);
-    }
-    static foreach (to_index, reg_to; Reg8_rrr)
-        if (reg_to.register != Register.UNKNOWN) {
-            static foreach (from_index, reg_from; Reg8_rrr)
-                if (reg_from.register != Register.UNKNOWN) {
-                    instructions[cast(ubyte) 0b0100_0000 | (to_index << 3) | from_index] = Instruction(
-                        InstructionType.Ld, [reg_to, reg_from]);
-                }
-        }
-
+    instructions[0x7C] = Instruction(InstructionType.Mlt, [OR16(Register.SP)]);
+    instructions[0x83] = Instruction(InstructionType.Otim, []);
+    instructions[0x8B] = Instruction(InstructionType.Otdm, []);
+    instructions[0x93] = Instruction(InstructionType.Otimr, []);
+    instructions[0x9B] = Instruction(InstructionType.Otdmr, []);
+    instructions[0xA0] = Instruction(InstructionType.Ldi, []);
+    instructions[0xA1] = Instruction(InstructionType.Cpi, []);
+    instructions[0xA2] = Instruction(InstructionType.Ini, []);
+    instructions[0xA3] = Instruction(InstructionType.Outi, []);
+    instructions[0xA8] = Instruction(InstructionType.Ldd, []);
+    instructions[0xA9] = Instruction(InstructionType.Cpd, []);
+    instructions[0xAA] = Instruction(InstructionType.Ind, []);
+    instructions[0xAB] = Instruction(InstructionType.Outd, []);
+    instructions[0xB0] = Instruction(InstructionType.Ldir, []);
+    instructions[0xB1] = Instruction(InstructionType.Cpir, []);
+    instructions[0xB2] = Instruction(InstructionType.Inir, []);
+    instructions[0xB3] = Instruction(InstructionType.Otir, []);
+    instructions[0xB8] = Instruction(InstructionType.Lddr, []);
+    instructions[0xB9] = Instruction(InstructionType.Cpdr, []);
+    instructions[0xBA] = Instruction(InstructionType.Indr, []);
+    instructions[0xBB] = Instruction(InstructionType.Otdr, []);
     return instructions;
 }
-
-private Instruction[ubyte] BitIndirection() {
-    Instruction[ubyte] instructions;
+private pure Instruction[0xFF + 1] BitIndirection() {
+    Instruction[0xFF + 1] instructions = new Instruction[0xFF + 1];
     instructions[0b00000110] = Instruction(InstructionType.Rlc, [
             OR16_LK(Register.HL)
         ]);
@@ -703,8 +684,8 @@ private Instruction[ubyte] BitIndirection() {
     return instructions;
 }
 
-private Instruction[ubyte] IxBitIndirection() {
-    Instruction[ubyte] instructions;
+private pure Instruction[0xFF + 1] IxBitIndirection() {
+    Instruction[0xFF + 1] instructions = new Instruction[0xFF + 1];
     instructions[0x00] = Instruction(InstructionType.Rlc, [IX, OR8(Register.B)], null, true);
     instructions[0x01] = Instruction(InstructionType.Rlc, [IX, OR8(Register.C)], null, true);
     instructions[0x02] = Instruction(InstructionType.Rlc, [IX, OR8(Register.D)], null, true);
@@ -1188,8 +1169,8 @@ private Instruction[ubyte] IxBitIndirection() {
     return instructions;
 }
 
-private Instruction[ubyte] IyBitIndirection() {
-    Instruction[ubyte] instructions;
+private pure Instruction[0xFF + 1] IyBitIndirection() {
+    Instruction[0xFF + 1] instructions = new Instruction[0xFF + 1];
     instructions[0x00] = Instruction(InstructionType.Rlc, [IY, OR8(Register.B)], null, true);
     instructions[0x01] = Instruction(InstructionType.Rlc, [IY, OR8(Register.C)], null, true);
     instructions[0x02] = Instruction(InstructionType.Rlc, [IY, OR8(Register.D)], null, true);
@@ -1672,9 +1653,341 @@ private Instruction[ubyte] IyBitIndirection() {
         ], null, true);
     return instructions;
 }
+private pure Instruction[0xFF + 1] IyIndirection() {
+    Instruction[0xFF + 1] instructions = new Instruction[0xFF + 1];
+    instructions[0xCB] = Instruction(InstructionType.Indirection, [], IyBitIndirection(), true);
+    instructions[0x04] = Instruction(InstructionType.Inc, [OR8(Register.B)]);
+    instructions[0x05] = Instruction(InstructionType.Dec, [OR8(Register.B)]);
+    instructions[0x06] = Instruction(InstructionType.Ld, [OR8(Register.B), IMM8]);
+    instructions[0x09] = Instruction(InstructionType.Add, [
+            OR16(Register.IY), OR16(Register.BC)
+        ]);
+    instructions[0x0C] = Instruction(InstructionType.Inc, [OR8(Register.C)]);
+    instructions[0x0D] = Instruction(InstructionType.Dec, [OR8(Register.C)]);
+    instructions[0x0E] = Instruction(InstructionType.Ld, [OR8(Register.C), IMM8]);
+    instructions[0x14] = Instruction(InstructionType.Inc, [OR8(Register.D)]);
+    instructions[0x15] = Instruction(InstructionType.Dec, [OR8(Register.D)]);
+    instructions[0x16] = Instruction(InstructionType.Ld, [OR8(Register.D), IMM8]);
+    instructions[0x19] = Instruction(InstructionType.Add, [
+            OR16(Register.IY), OR16(Register.DE)
+        ]);
+    instructions[0x1C] = Instruction(InstructionType.Inc, [OR8(Register.E)]);
+    instructions[0x1D] = Instruction(InstructionType.Dec, [OR8(Register.E)]);
+    instructions[0x1E] = Instruction(InstructionType.Ld, [OR8(Register.E), IMM8]);
+    instructions[0x21] = Instruction(InstructionType.Ld, [
+            OR16(Register.IY), IMM16
+        ]);
+    instructions[0x22] = Instruction(InstructionType.Ld, [
+            IMM16_LK, OR16(Register.IY)
+        ]);
+    instructions[0x23] = Instruction(InstructionType.Inc, [OR16(Register.IY)]);
+    instructions[0x24] = Instruction(InstructionType.Inc, [OR8(Register.IYH)]);
+    instructions[0x25] = Instruction(InstructionType.Dec, [OR8(Register.IYH)]);
+    instructions[0x26] = Instruction(InstructionType.Ld, [
+            OR8(Register.IYH), IMM8
+        ]);
+    instructions[0x29] = Instruction(InstructionType.Add, [
+            OR16(Register.IY), OR16(Register.IY)
+        ]);
+    instructions[0x2A] = Instruction(InstructionType.Ld, [
+            OR16(Register.IY), IMM16_LK
+        ]);
+    instructions[0x2B] = Instruction(InstructionType.Dec, [OR16(Register.IY)]);
+    instructions[0x2C] = Instruction(InstructionType.Inc, [OR8(Register.IYL)]);
+    instructions[0x2D] = Instruction(InstructionType.Dec, [OR8(Register.IYL)]);
+    instructions[0x2E] = Instruction(InstructionType.Ld, [
+            OR8(Register.IYL), IMM8
+        ]);
+    instructions[0x34] = Instruction(InstructionType.Inc, [IY]);
+    instructions[0x35] = Instruction(InstructionType.Dec, [IY]);
+    instructions[0x36] = Instruction(InstructionType.Ld, [IY, IMM8]);
+    instructions[0x39] = Instruction(InstructionType.Add, [
+            OR16(Register.IY), OR16(Register.SP)
+        ]);
+    instructions[0x3C] = Instruction(InstructionType.Inc, [OR8(Register.A)]);
+    instructions[0x3D] = Instruction(InstructionType.Dec, [OR8(Register.A)]);
+    instructions[0x3E] = Instruction(InstructionType.Ld, [OR8(Register.A), IMM8]);
+    instructions[0x40] = Instruction(InstructionType.Ld, [
+            OR8(Register.B), OR8(Register.B)
+        ]);
+    instructions[0x41] = Instruction(InstructionType.Ld, [
+            OR8(Register.B), OR8(Register.C)
+        ]);
+    instructions[0x42] = Instruction(InstructionType.Ld, [
+            OR8(Register.B), OR8(Register.D)
+        ]);
+    instructions[0x43] = Instruction(InstructionType.Ld, [
+            OR8(Register.B), OR8(Register.E)
+        ]);
+    instructions[0x44] = Instruction(InstructionType.Ld, [
+            OR8(Register.B), OR8(Register.IYH)
+        ]);
+    instructions[0x45] = Instruction(InstructionType.Ld, [
+            OR8(Register.B), OR8(Register.IYL)
+        ]);
+    instructions[0x46] = Instruction(InstructionType.Ld, [OR8(Register.B), IY]);
+    instructions[0x47] = Instruction(InstructionType.Ld, [
+            OR8(Register.B), OR8(Register.A)
+        ]);
+    instructions[0x48] = Instruction(InstructionType.Ld, [
+            OR8(Register.C), OR8(Register.B)
+        ]);
+    instructions[0x49] = Instruction(InstructionType.Ld, [
+            OR8(Register.C), OR8(Register.C)
+        ]);
+    instructions[0x4A] = Instruction(InstructionType.Ld, [
+            OR8(Register.C), OR8(Register.D)
+        ]);
+    instructions[0x4B] = Instruction(InstructionType.Ld, [
+            OR8(Register.C), OR8(Register.E)
+        ]);
+    instructions[0x4C] = Instruction(InstructionType.Ld, [
+            OR8(Register.C), OR8(Register.IYH)
+        ]);
+    instructions[0x4D] = Instruction(InstructionType.Ld, [
+            OR8(Register.C), OR8(Register.IYL)
+        ]);
+    instructions[0x4E] = Instruction(InstructionType.Ld, [OR8(Register.C), IY]);
+    instructions[0x4F] = Instruction(InstructionType.Ld, [
+            OR8(Register.C), OR8(Register.A)
+        ]);
+    instructions[0x50] = Instruction(InstructionType.Ld, [
+            OR8(Register.D), OR8(Register.B)
+        ]);
+    instructions[0x51] = Instruction(InstructionType.Ld, [
+            OR8(Register.D), OR8(Register.C)
+        ]);
+    instructions[0x52] = Instruction(InstructionType.Ld, [
+            OR8(Register.D), OR8(Register.D)
+        ]);
+    instructions[0x53] = Instruction(InstructionType.Ld, [
+            OR8(Register.D), OR8(Register.E)
+        ]);
+    instructions[0x54] = Instruction(InstructionType.Ld, [
+            OR8(Register.D), OR8(Register.IYH)
+        ]);
+    instructions[0x55] = Instruction(InstructionType.Ld, [
+            OR8(Register.D), OR8(Register.IYL)
+        ]);
+    instructions[0x56] = Instruction(InstructionType.Ld, [OR8(Register.D), IY]);
+    instructions[0x57] = Instruction(InstructionType.Ld, [
+            OR8(Register.D), OR8(Register.A)
+        ]);
+    instructions[0x58] = Instruction(InstructionType.Ld, [
+            OR8(Register.E), OR8(Register.B)
+        ]);
+    instructions[0x59] = Instruction(InstructionType.Ld, [
+            OR8(Register.E), OR8(Register.C)
+        ]);
+    instructions[0x5A] = Instruction(InstructionType.Ld, [
+            OR8(Register.E), OR8(Register.D)
+        ]);
+    instructions[0x5B] = Instruction(InstructionType.Ld, [
+            OR8(Register.E), OR8(Register.E)
+        ]);
+    instructions[0x5C] = Instruction(InstructionType.Ld, [
+            OR8(Register.E), OR8(Register.IYH)
+        ]);
+    instructions[0x5D] = Instruction(InstructionType.Ld, [
+            OR8(Register.E), OR8(Register.IYL)
+        ]);
+    instructions[0x5E] = Instruction(InstructionType.Ld, [OR8(Register.E), IY]);
+    instructions[0x5F] = Instruction(InstructionType.Ld, [
+            OR8(Register.E), OR8(Register.A)
+        ]);
+    instructions[0x60] = Instruction(InstructionType.Ld, [
+            OR8(Register.IYH), OR8(Register.B)
+        ]);
+    instructions[0x61] = Instruction(InstructionType.Ld, [
+            OR8(Register.IYH), OR8(Register.C)
+        ]);
+    instructions[0x62] = Instruction(InstructionType.Ld, [
+            OR8(Register.IYH), OR8(Register.D)
+        ]);
+    instructions[0x63] = Instruction(InstructionType.Ld, [
+            OR8(Register.IYH), OR8(Register.E)
+        ]);
+    instructions[0x64] = Instruction(InstructionType.Ld, [
+            OR8(Register.IYH), OR8(Register.IYH)
+        ]);
+    instructions[0x65] = Instruction(InstructionType.Ld, [
+            OR8(Register.IYH), OR8(Register.IYL)
+        ]);
+    instructions[0x66] = Instruction(InstructionType.Ld, [OR8(Register.H), IY]);
+    instructions[0x67] = Instruction(InstructionType.Ld, [
+            OR8(Register.IYH), OR8(Register.A)
+        ]);
+    instructions[0x68] = Instruction(InstructionType.Ld, [
+            OR8(Register.IYL), OR8(Register.B)
+        ]);
+    instructions[0x69] = Instruction(InstructionType.Ld, [
+            OR8(Register.IYL), OR8(Register.C)
+        ]);
+    instructions[0x6A] = Instruction(InstructionType.Ld, [
+            OR8(Register.IYL), OR8(Register.D)
+        ]);
+    instructions[0x6B] = Instruction(InstructionType.Ld, [
+            OR8(Register.IYL), OR8(Register.E)
+        ]);
+    instructions[0x6C] = Instruction(InstructionType.Ld, [
+            OR8(Register.IYL), OR8(Register.IYH)
+        ]);
+    instructions[0x6D] = Instruction(InstructionType.Ld, [
+            OR8(Register.IYL), OR8(Register.IYL)
+        ]);
+    instructions[0x6E] = Instruction(InstructionType.Ld, [OR8(Register.L), IY]);
+    instructions[0x6F] = Instruction(InstructionType.Ld, [
+            OR8(Register.IYL), OR8(Register.A)
+        ]);
+    instructions[0x70] = Instruction(InstructionType.Ld, [IY, OR8(Register.B)]);
+    instructions[0x71] = Instruction(InstructionType.Ld, [IY, OR8(Register.C)]);
+    instructions[0x72] = Instruction(InstructionType.Ld, [IY, OR8(Register.D)]);
+    instructions[0x73] = Instruction(InstructionType.Ld, [IY, OR8(Register.E)]);
+    instructions[0x74] = Instruction(InstructionType.Ld, [IY, OR8(Register.H)]);
+    instructions[0x75] = Instruction(InstructionType.Ld, [IY, OR8(Register.L)]);
+    instructions[0x77] = Instruction(InstructionType.Ld, [IY, OR8(Register.A)]);
+    instructions[0x78] = Instruction(InstructionType.Ld, [
+            OR8(Register.A), OR8(Register.B)
+        ]);
+    instructions[0x79] = Instruction(InstructionType.Ld, [
+            OR8(Register.A), OR8(Register.C)
+        ]);
+    instructions[0x7A] = Instruction(InstructionType.Ld, [
+            OR8(Register.A), OR8(Register.D)
+        ]);
+    instructions[0x7B] = Instruction(InstructionType.Ld, [
+            OR8(Register.A), OR8(Register.E)
+        ]);
+    instructions[0x7C] = Instruction(InstructionType.Ld, [
+            OR8(Register.A), OR8(Register.IYH)
+        ]);
+    instructions[0x7D] = Instruction(InstructionType.Ld, [
+            OR8(Register.A), OR8(Register.IYL)
+        ]);
+    instructions[0x7E] = Instruction(InstructionType.Ld, [OR8(Register.A), IY]);
+    instructions[0x7F] = Instruction(InstructionType.Ld, [
+            OR8(Register.A), OR8(Register.A)
+        ]);
+    instructions[0x80] = Instruction(InstructionType.Add, [
+            OR8(Register.A), OR8(Register.B)
+        ]);
+    instructions[0x81] = Instruction(InstructionType.Add, [
+            OR8(Register.A), OR8(Register.C)
+        ]);
+    instructions[0x82] = Instruction(InstructionType.Add, [
+            OR8(Register.A), OR8(Register.D)
+        ]);
+    instructions[0x83] = Instruction(InstructionType.Add, [
+            OR8(Register.A), OR8(Register.E)
+        ]);
+    instructions[0x84] = Instruction(InstructionType.Add, [
+            OR8(Register.A), OR8(Register.IYH)
+        ]);
+    instructions[0x85] = Instruction(InstructionType.Add, [
+            OR8(Register.A), OR8(Register.IYL)
+        ]);
+    instructions[0x86] = Instruction(InstructionType.Add, [OR8(Register.A), IY]);
+    instructions[0x87] = Instruction(InstructionType.Add, [
+            OR8(Register.A), OR8(Register.A)
+        ]);
+    instructions[0x88] = Instruction(InstructionType.Adc, [
+            OR8(Register.A), OR8(Register.B)
+        ]);
+    instructions[0x89] = Instruction(InstructionType.Adc, [
+            OR8(Register.A), OR8(Register.C)
+        ]);
+    instructions[0x8A] = Instruction(InstructionType.Adc, [
+            OR8(Register.A), OR8(Register.D)
+        ]);
+    instructions[0x8B] = Instruction(InstructionType.Adc, [
+            OR8(Register.A), OR8(Register.E)
+        ]);
+    instructions[0x8C] = Instruction(InstructionType.Adc, [
+            OR8(Register.A), OR8(Register.IYH)
+        ]);
+    instructions[0x8D] = Instruction(InstructionType.Adc, [
+            OR8(Register.A), OR8(Register.IYL)
+        ]);
+    instructions[0x8E] = Instruction(InstructionType.Adc, [OR8(Register.A), IY]);
+    instructions[0x8F] = Instruction(InstructionType.Adc, [
+            OR8(Register.A), OR8(Register.A)
+        ]);
+    instructions[0x90] = Instruction(InstructionType.Sub, [OR8(Register.B)]);
+    instructions[0x91] = Instruction(InstructionType.Sub, [OR8(Register.C)]);
+    instructions[0x92] = Instruction(InstructionType.Sub, [OR8(Register.D)]);
+    instructions[0x93] = Instruction(InstructionType.Sub, [OR8(Register.E)]);
+    instructions[0x94] = Instruction(InstructionType.Sub, [OR8(Register.IYH)]);
+    instructions[0x95] = Instruction(InstructionType.Sub, [OR8(Register.IYL)]);
+    instructions[0x96] = Instruction(InstructionType.Sub, [IY]);
+    instructions[0x97] = Instruction(InstructionType.Sub, [OR8(Register.A)]);
+    instructions[0x98] = Instruction(InstructionType.Sbc, [
+            OR8(Register.A), OR8(Register.B)
+        ]);
+    instructions[0x99] = Instruction(InstructionType.Sbc, [
+            OR8(Register.A), OR8(Register.C)
+        ]);
+    instructions[0x9A] = Instruction(InstructionType.Sbc, [
+            OR8(Register.A), OR8(Register.D)
+        ]);
+    instructions[0x9B] = Instruction(InstructionType.Sbc, [
+            OR8(Register.A), OR8(Register.E)
+        ]);
+    instructions[0x9C] = Instruction(InstructionType.Sbc, [
+            OR8(Register.A), OR8(Register.IYH)
+        ]);
+    instructions[0x9D] = Instruction(InstructionType.Sbc, [
+            OR8(Register.A), OR8(Register.IYL)
+        ]);
+    instructions[0x9E] = Instruction(InstructionType.Sbc, [OR8(Register.A), IY]);
+    instructions[0x9F] = Instruction(InstructionType.Sbc, [
+            OR8(Register.A), OR8(Register.A)
+        ]);
+    instructions[0xA0] = Instruction(InstructionType.And, [OR8(Register.B)]);
+    instructions[0xA1] = Instruction(InstructionType.And, [OR8(Register.C)]);
+    instructions[0xA2] = Instruction(InstructionType.And, [OR8(Register.D)]);
+    instructions[0xA3] = Instruction(InstructionType.And, [OR8(Register.E)]);
+    instructions[0xA4] = Instruction(InstructionType.And, [OR8(Register.IYH)]);
+    instructions[0xA5] = Instruction(InstructionType.And, [OR8(Register.IYL)]);
+    instructions[0xA6] = Instruction(InstructionType.And, [IY]);
+    instructions[0xA7] = Instruction(InstructionType.And, [OR8(Register.A)]);
+    instructions[0xA8] = Instruction(InstructionType.Xor, [OR8(Register.B)]);
+    instructions[0xA9] = Instruction(InstructionType.Xor, [OR8(Register.C)]);
+    instructions[0xAA] = Instruction(InstructionType.Xor, [OR8(Register.D)]);
+    instructions[0xAB] = Instruction(InstructionType.Xor, [OR8(Register.E)]);
+    instructions[0xAC] = Instruction(InstructionType.Xor, [OR8(Register.IYH)]);
+    instructions[0xAD] = Instruction(InstructionType.Xor, [OR8(Register.IYL)]);
+    instructions[0xAE] = Instruction(InstructionType.Xor, [IY]);
+    instructions[0xAF] = Instruction(InstructionType.Xor, [OR8(Register.A)]);
+    instructions[0xB0] = Instruction(InstructionType.Or, [OR8(Register.B)]);
+    instructions[0xB1] = Instruction(InstructionType.Or, [OR8(Register.C)]);
+    instructions[0xB2] = Instruction(InstructionType.Or, [OR8(Register.D)]);
+    instructions[0xB3] = Instruction(InstructionType.Or, [OR8(Register.E)]);
+    instructions[0xB4] = Instruction(InstructionType.Or, [OR8(Register.IYH)]);
+    instructions[0xB5] = Instruction(InstructionType.Or, [OR8(Register.IYL)]);
+    instructions[0xB6] = Instruction(InstructionType.Or, [IY]);
+    instructions[0xB7] = Instruction(InstructionType.Or, [OR8(Register.A)]);
+    instructions[0xB8] = Instruction(InstructionType.Cp, [OR8(Register.B)]);
+    instructions[0xB9] = Instruction(InstructionType.Cp, [OR8(Register.C)]);
+    instructions[0xBA] = Instruction(InstructionType.Cp, [OR8(Register.D)]);
+    instructions[0xBB] = Instruction(InstructionType.Cp, [OR8(Register.E)]);
+    instructions[0xBC] = Instruction(InstructionType.Cp, [OR8(Register.IYH)]);
+    instructions[0xBD] = Instruction(InstructionType.Cp, [OR8(Register.IYL)]);
+    instructions[0xBE] = Instruction(InstructionType.Cp, [IY]);
+    instructions[0xBF] = Instruction(InstructionType.Cp, [OR8(Register.A)]);
+    instructions[0xE1] = Instruction(InstructionType.Pop, [OR16(Register.IY)]);
+    instructions[0xE3] = Instruction(InstructionType.Ex, [
+            OR16_LK(Register.SP), OR16(Register.IY)
+        ]);
+    instructions[0xE5] = Instruction(InstructionType.Push, [OR16(Register.IY)]);
+    instructions[0xE9] = Instruction(InstructionType.Jp, [OR16_LK(Register.IY)]);
+    instructions[0xF9] = Instruction(InstructionType.Ld, [
+            OR16(Register.SP), OR16(Register.IY)
+        ]);
+    return instructions;
+}
+private pure Instruction[0xFF + 1] IxIndirection() {
+    Instruction[0xFF + 1] instructions = new Instruction[0xFF + 1];
 
-private Instruction[ubyte] IxIndirection() {
-    Instruction[ubyte] instructions;
     instructions[0xCB] = Instruction(InstructionType.Indirection, [], IxBitIndirection(), true);
 
     instructions[0x04] = Instruction(InstructionType.Inc, [OR8(Register.B)]);
@@ -2007,536 +2320,223 @@ private Instruction[ubyte] IxIndirection() {
     return instructions;
 }
 
-private Instruction[ubyte] MiscIndirection() {
-    Instruction[ubyte] instructions;
-    instructions[0x00] = Instruction(InstructionType.In0, [
-            OR8(Register.B), IMM8_LK
+private pure Instruction[0xFF + 1] genInstructionSet() {
+    Instruction[0xFF + 1] instructions = new Instruction[0xFF + 1];
+    
+    instructions[0] = Instruction(InstructionType.Nop);
+    instructions[0x02] = Instruction(InstructionType.Ld, [
+            OR16_LK(Register.BC), OR8(Register.A)
         ]);
-    instructions[0x01] = Instruction(InstructionType.Out0, [
-            IMM8_LK, OR8(Register.B)
+    instructions[0x07] = Instruction(InstructionType.Rlca, []);
+    instructions[0x08] = Instruction(InstructionType.Ex, [
+            OR16(Register.AF), OR16(Register.SHADOW_AF)
         ]);
-    instructions[0x04] = Instruction(InstructionType.Tst, [OR8(Register.B)]);
-    instructions[0x08] = Instruction(InstructionType.In0, [
-            OR8(Register.C), IMM8_LK
+    instructions[0x0A] = Instruction(InstructionType.Ld, [
+            OR8(Register.A), OR16_LK(Register.BC)
         ]);
-    instructions[0x09] = Instruction(InstructionType.Out0, [
-            IMM8_LK, OR8(Register.C)
+    instructions[0x0F] = Instruction(InstructionType.Rrca, []);
+    instructions[0x10] = Instruction(InstructionType.Djnz, [LIMM8]);
+    instructions[0x17] = Instruction(InstructionType.Rla, []);
+    instructions[0x18] = Instruction(InstructionType.Jr, [LIMM8]);
+    instructions[0x1a] = Instruction(InstructionType.Ld, [
+            OR8(Register.A), OR16_LK(Register.DE)
         ]);
-    instructions[0x0C] = Instruction(InstructionType.Tst, [OR8(Register.C)]);
-    instructions[0x10] = Instruction(InstructionType.In0, [
-            OR8(Register.D), IMM8_LK
+    instructions[0x3a] = Instruction(InstructionType.Ld, [
+            OR8(Register.A), IMM16_LK
         ]);
-    instructions[0x11] = Instruction(InstructionType.Out0, [
-            IMM8_LK, OR8(Register.D)
-        ]);
-    instructions[0x14] = Instruction(InstructionType.Tst, [OR8(Register.D)]);
-    instructions[0x18] = Instruction(InstructionType.In0, [
-            OR8(Register.E), IMM8_LK
-        ]);
-    instructions[0x19] = Instruction(InstructionType.Out0, [
-            IMM8_LK, OR8(Register.E)
-        ]);
-    instructions[0x1C] = Instruction(InstructionType.Tst, [OR8(Register.E)]);
-    instructions[0x20] = Instruction(InstructionType.In0, [
-            OR8(Register.H), IMM8_LK
-        ]);
-    instructions[0x21] = Instruction(InstructionType.Out0, [
-            IMM8_LK, OR8(Register.H)
-        ]);
-    instructions[0x24] = Instruction(InstructionType.Tst, [OR8(Register.H)]);
-    instructions[0x28] = Instruction(InstructionType.In0, [
-            OR8(Register.L), IMM8_LK
-        ]);
-    instructions[0x29] = Instruction(InstructionType.Out0, [
-            IMM8_LK, OR8(Register.L)
-        ]);
-    instructions[0x2C] = Instruction(InstructionType.Tst, [OR8(Register.L)]);
-    instructions[0x34] = Instruction(InstructionType.Tst, [OR16_LK(Register.HL)]);
-    instructions[0x38] = Instruction(InstructionType.In0, [
-            OR8(Register.A), IMM8_LK
-        ]);
-    instructions[0x39] = Instruction(InstructionType.Out0, [
-            IMM8_LK, OR8(Register.A)
-        ]);
-    instructions[0x3C] = Instruction(InstructionType.Tst, [OR8(Register.A)]);
-    instructions[0x40] = Instruction(InstructionType.In, [
-            OR8(Register.B), OR8_LK(Register.C)
-        ]);
-    instructions[0x41] = Instruction(InstructionType.Out, [
-            OR8_LK(Register.C), OR8(Register.B)
-        ]);
-    instructions[0x42] = Instruction(InstructionType.Sbc, [
-            OR16(Register.HL), OR16(Register.BC)
-        ]);
-    instructions[0x43] = Instruction(InstructionType.Ld, [
-            IMM16_LK, OR16(Register.BC)
-        ]);
-    instructions[0x44] = Instruction(InstructionType.Neg, []);
-    instructions[0x45] = Instruction(InstructionType.Retn, []);
-    instructions[0x46] = Instruction(InstructionType.Im, [PIMM8(0)]);
-    instructions[0x47] = Instruction(InstructionType.Ld, [
-            OR8(Register.I), OR8(Register.A)
-        ]);
-    instructions[0x48] = Instruction(InstructionType.In, [
-            OR8(Register.C), OR8_LK(Register.C)
-        ]);
-    instructions[0x49] = Instruction(InstructionType.Out, [
-            OR8_LK(Register.C), OR8(Register.C)
-        ]);
-    instructions[0x4A] = Instruction(InstructionType.Adc, [
-            OR16(Register.HL), OR16(Register.BC)
-        ]);
-    instructions[0x4B] = Instruction(InstructionType.Ld, [
-            OR16(Register.BC), IMM16_LK
-        ]);
-    instructions[0x4C] = Instruction(InstructionType.Mlt, [OR16(Register.BC)]);
-    instructions[0x4D] = Instruction(InstructionType.Reti, []);
-    instructions[0x4F] = Instruction(InstructionType.Ld, [
-            OR8(Register.R), OR8(Register.A)
-        ]);
-    instructions[0x50] = Instruction(InstructionType.In, [
-            OR8(Register.D), OR8_LK(Register.C)
-        ]);
-    instructions[0x51] = Instruction(InstructionType.Out, [
-            OR8_LK(Register.C), OR8(Register.D)
-        ]);
-    instructions[0x52] = Instruction(InstructionType.Sbc, [
-            OR16(Register.HL), OR16(Register.DE)
-        ]);
-    instructions[0x53] = Instruction(InstructionType.Ld, [
-            IMM16_LK, OR16(Register.DE)
-        ]);
-    instructions[0x56] = Instruction(InstructionType.Im, [PIMM8(1)]);
-    instructions[0x57] = Instruction(InstructionType.Ld, [
-            OR8(Register.A), OR8(Register.I)
-        ]);
-    instructions[0x58] = Instruction(InstructionType.In, [
-            OR8(Register.E), OR8_LK(Register.C)
-        ]);
-    instructions[0x59] = Instruction(InstructionType.Out, [
-            OR8_LK(Register.C), OR8(Register.E)
-        ]);
-    instructions[0x5A] = Instruction(InstructionType.Adc, [
-            OR16(Register.HL), OR16(Register.DE)
-        ]);
-    instructions[0x5B] = Instruction(InstructionType.Ld, [
-            OR16(Register.DE), IMM16_LK
-        ]);
-    instructions[0x5C] = Instruction(InstructionType.Mlt, [OR16(Register.DE)]);
-    instructions[0x5E] = Instruction(InstructionType.Im, [PIMM8(2)]);
-    instructions[0x5F] = Instruction(InstructionType.Ld, [
-            OR8(Register.A), OR8(Register.R)
-        ]);
-    instructions[0x60] = Instruction(InstructionType.In, [
-            OR8(Register.H), OR8_LK(Register.C)
-        ]);
-    instructions[0x61] = Instruction(InstructionType.Out, [
-            OR8_LK(Register.C), OR8(Register.H)
-        ]);
-    instructions[0x62] = Instruction(InstructionType.Sbc, [
-            OR16(Register.HL), OR16(Register.HL)
-        ]);
-    instructions[0x63] = Instruction(InstructionType.Ld, [
-            IMM16_LK, OR16(Register.HL)
-        ]);
-    instructions[0x64] = Instruction(InstructionType.Tst, [IMM8]);
-    instructions[0x67] = Instruction(InstructionType.Rrd, []);
-    instructions[0x68] = Instruction(InstructionType.In, [
-            OR8(Register.L), OR8_LK(Register.C)
-        ]);
-    instructions[0x69] = Instruction(InstructionType.Out, [
-            OR8_LK(Register.C), OR8(Register.L)
-        ]);
-    instructions[0x6A] = Instruction(InstructionType.Adc, [
-            OR16(Register.HL), OR16(Register.HL)
-        ]);
-    instructions[0x6B] = Instruction(InstructionType.Ld, [
-            OR16(Register.HL), IMM16_LK
-        ]);
-    instructions[0x6C] = Instruction(InstructionType.Mlt, [OR16(Register.HL)]);
-    instructions[0x6F] = Instruction(InstructionType.Rld, []);
-    instructions[0x70] = Instruction(InstructionType.In, [OR8_LK(Register.C)]);
-    instructions[0x71] = Instruction(InstructionType.Out, [
-            OR8_LK(Register.C), PIMM8(0)
-        ]);
-    instructions[0x72] = Instruction(InstructionType.Sbc, [
-            OR16(Register.HL), OR16(Register.SP)
-        ]);
-    instructions[0x73] = Instruction(InstructionType.Ld, [
-            IMM16_LK, OR16(Register.SP)
-        ]);
-    instructions[0x74] = Instruction(InstructionType.Tstio, [IMM8]);
-    instructions[0x76] = Instruction(InstructionType.Slp, []);
-    instructions[0x78] = Instruction(InstructionType.In, [
-            OR8(Register.A), OR8_LK(Register.C)
-        ]);
-    instructions[0x79] = Instruction(InstructionType.Out, [
-            OR8_LK(Register.C), OR8(Register.A)
-        ]);
-    instructions[0x7A] = Instruction(InstructionType.Adc, [
-            OR16(Register.HL), OR16(Register.SP)
-        ]);
-    instructions[0x7B] = Instruction(InstructionType.Ld, [
-            OR16(Register.SP), IMM16_LK
-        ]);
-    instructions[0x7C] = Instruction(InstructionType.Mlt, [OR16(Register.SP)]);
-    instructions[0x83] = Instruction(InstructionType.Otim, []);
-    instructions[0x8B] = Instruction(InstructionType.Otdm, []);
-    instructions[0x93] = Instruction(InstructionType.Otimr, []);
-    instructions[0x9B] = Instruction(InstructionType.Otdmr, []);
-    instructions[0xA0] = Instruction(InstructionType.Ldi, []);
-    instructions[0xA1] = Instruction(InstructionType.Cpi, []);
-    instructions[0xA2] = Instruction(InstructionType.Ini, []);
-    instructions[0xA3] = Instruction(InstructionType.Outi, []);
-    instructions[0xA8] = Instruction(InstructionType.Ldd, []);
-    instructions[0xA9] = Instruction(InstructionType.Cpd, []);
-    instructions[0xAA] = Instruction(InstructionType.Ind, []);
-    instructions[0xAB] = Instruction(InstructionType.Outd, []);
-    instructions[0xB0] = Instruction(InstructionType.Ldir, []);
-    instructions[0xB1] = Instruction(InstructionType.Cpir, []);
-    instructions[0xB2] = Instruction(InstructionType.Inir, []);
-    instructions[0xB3] = Instruction(InstructionType.Otir, []);
-    instructions[0xB8] = Instruction(InstructionType.Lddr, []);
-    instructions[0xB9] = Instruction(InstructionType.Cpdr, []);
-    instructions[0xBA] = Instruction(InstructionType.Indr, []);
-    instructions[0xBB] = Instruction(InstructionType.Otdr, []);
-    return instructions;
-}
+    instructions[0x1F] = Instruction(InstructionType.Rra, []);
+    instructions[0x27] = Instruction(InstructionType.Daa, []);
+    instructions[0x2F] = Instruction(InstructionType.Cpl, []);
+    instructions[0x37] = Instruction(InstructionType.Scf, []);
+    instructions[0x3f] = Instruction(InstructionType.Ccf, []);
+    instructions[0x76] = Instruction(InstructionType.Halt, []);
+    instructions[0x34] = Instruction(InstructionType.Inc, [OR16_LK(Register.HL)]);
+    instructions[0x35] = Instruction(InstructionType.Dec, [OR16_LK(Register.HL)]);
 
-private Instruction[ubyte] IyIndirection() {
-    Instruction[ubyte] instructions;
-    instructions[0xCB] = Instruction(InstructionType.Indirection, [], IyBitIndirection(), true);
-    instructions[0x04] = Instruction(InstructionType.Inc, [OR8(Register.B)]);
-    instructions[0x05] = Instruction(InstructionType.Dec, [OR8(Register.B)]);
-    instructions[0x06] = Instruction(InstructionType.Ld, [OR8(Register.B), IMM8]);
-    instructions[0x09] = Instruction(InstructionType.Add, [
-            OR16(Register.IY), OR16(Register.BC)
-        ]);
-    instructions[0x0C] = Instruction(InstructionType.Inc, [OR8(Register.C)]);
-    instructions[0x0D] = Instruction(InstructionType.Dec, [OR8(Register.C)]);
-    instructions[0x0E] = Instruction(InstructionType.Ld, [OR8(Register.C), IMM8]);
-    instructions[0x14] = Instruction(InstructionType.Inc, [OR8(Register.D)]);
-    instructions[0x15] = Instruction(InstructionType.Dec, [OR8(Register.D)]);
-    instructions[0x16] = Instruction(InstructionType.Ld, [OR8(Register.D), IMM8]);
-    instructions[0x19] = Instruction(InstructionType.Add, [
-            OR16(Register.IY), OR16(Register.DE)
-        ]);
-    instructions[0x1C] = Instruction(InstructionType.Inc, [OR8(Register.E)]);
-    instructions[0x1D] = Instruction(InstructionType.Dec, [OR8(Register.E)]);
-    instructions[0x1E] = Instruction(InstructionType.Ld, [OR8(Register.E), IMM8]);
-    instructions[0x21] = Instruction(InstructionType.Ld, [
-            OR16(Register.IY), IMM16
+    instructions[0x12] = Instruction(InstructionType.Ld, [
+            OR16_LK(Register.DE), OR8(Register.A)
         ]);
     instructions[0x22] = Instruction(InstructionType.Ld, [
-            IMM16_LK, OR16(Register.IY)
+            IMM16_LK, OR16(Register.HL)
         ]);
-    instructions[0x23] = Instruction(InstructionType.Inc, [OR16(Register.IY)]);
-    instructions[0x24] = Instruction(InstructionType.Inc, [OR8(Register.IYH)]);
-    instructions[0x25] = Instruction(InstructionType.Dec, [OR8(Register.IYH)]);
-    instructions[0x26] = Instruction(InstructionType.Ld, [
-            OR8(Register.IYH), IMM8
+    instructions[0x32] = Instruction(InstructionType.Ld, [
+            IMM16_LK, OR8(Register.A)
         ]);
-    instructions[0x29] = Instruction(InstructionType.Add, [
-            OR16(Register.IY), OR16(Register.IY)
+    instructions[0x36] = Instruction(InstructionType.Ld, [
+            OR16_LK(Register.HL), IMM8
         ]);
+
     instructions[0x2A] = Instruction(InstructionType.Ld, [
-            OR16(Register.IY), IMM16_LK
-        ]);
-    instructions[0x2B] = Instruction(InstructionType.Dec, [OR16(Register.IY)]);
-    instructions[0x2C] = Instruction(InstructionType.Inc, [OR8(Register.IYL)]);
-    instructions[0x2D] = Instruction(InstructionType.Dec, [OR8(Register.IYL)]);
-    instructions[0x2E] = Instruction(InstructionType.Ld, [
-            OR8(Register.IYL), IMM8
-        ]);
-    instructions[0x34] = Instruction(InstructionType.Inc, [IY]);
-    instructions[0x35] = Instruction(InstructionType.Dec, [IY]);
-    instructions[0x36] = Instruction(InstructionType.Ld, [IY, IMM8]);
-    instructions[0x39] = Instruction(InstructionType.Add, [
-            OR16(Register.IY), OR16(Register.SP)
-        ]);
-    instructions[0x3C] = Instruction(InstructionType.Inc, [OR8(Register.A)]);
-    instructions[0x3D] = Instruction(InstructionType.Dec, [OR8(Register.A)]);
-    instructions[0x3E] = Instruction(InstructionType.Ld, [OR8(Register.A), IMM8]);
-    instructions[0x40] = Instruction(InstructionType.Ld, [
-            OR8(Register.B), OR8(Register.B)
-        ]);
-    instructions[0x41] = Instruction(InstructionType.Ld, [
-            OR8(Register.B), OR8(Register.C)
-        ]);
-    instructions[0x42] = Instruction(InstructionType.Ld, [
-            OR8(Register.B), OR8(Register.D)
-        ]);
-    instructions[0x43] = Instruction(InstructionType.Ld, [
-            OR8(Register.B), OR8(Register.E)
-        ]);
-    instructions[0x44] = Instruction(InstructionType.Ld, [
-            OR8(Register.B), OR8(Register.IYH)
-        ]);
-    instructions[0x45] = Instruction(InstructionType.Ld, [
-            OR8(Register.B), OR8(Register.IYL)
-        ]);
-    instructions[0x46] = Instruction(InstructionType.Ld, [OR8(Register.B), IY]);
-    instructions[0x47] = Instruction(InstructionType.Ld, [
-            OR8(Register.B), OR8(Register.A)
-        ]);
-    instructions[0x48] = Instruction(InstructionType.Ld, [
-            OR8(Register.C), OR8(Register.B)
-        ]);
-    instructions[0x49] = Instruction(InstructionType.Ld, [
-            OR8(Register.C), OR8(Register.C)
-        ]);
-    instructions[0x4A] = Instruction(InstructionType.Ld, [
-            OR8(Register.C), OR8(Register.D)
-        ]);
-    instructions[0x4B] = Instruction(InstructionType.Ld, [
-            OR8(Register.C), OR8(Register.E)
-        ]);
-    instructions[0x4C] = Instruction(InstructionType.Ld, [
-            OR8(Register.C), OR8(Register.IYH)
-        ]);
-    instructions[0x4D] = Instruction(InstructionType.Ld, [
-            OR8(Register.C), OR8(Register.IYL)
-        ]);
-    instructions[0x4E] = Instruction(InstructionType.Ld, [OR8(Register.C), IY]);
-    instructions[0x4F] = Instruction(InstructionType.Ld, [
-            OR8(Register.C), OR8(Register.A)
-        ]);
-    instructions[0x50] = Instruction(InstructionType.Ld, [
-            OR8(Register.D), OR8(Register.B)
-        ]);
-    instructions[0x51] = Instruction(InstructionType.Ld, [
-            OR8(Register.D), OR8(Register.C)
-        ]);
-    instructions[0x52] = Instruction(InstructionType.Ld, [
-            OR8(Register.D), OR8(Register.D)
-        ]);
-    instructions[0x53] = Instruction(InstructionType.Ld, [
-            OR8(Register.D), OR8(Register.E)
-        ]);
-    instructions[0x54] = Instruction(InstructionType.Ld, [
-            OR8(Register.D), OR8(Register.IYH)
-        ]);
-    instructions[0x55] = Instruction(InstructionType.Ld, [
-            OR8(Register.D), OR8(Register.IYL)
-        ]);
-    instructions[0x56] = Instruction(InstructionType.Ld, [OR8(Register.D), IY]);
-    instructions[0x57] = Instruction(InstructionType.Ld, [
-            OR8(Register.D), OR8(Register.A)
-        ]);
-    instructions[0x58] = Instruction(InstructionType.Ld, [
-            OR8(Register.E), OR8(Register.B)
-        ]);
-    instructions[0x59] = Instruction(InstructionType.Ld, [
-            OR8(Register.E), OR8(Register.C)
-        ]);
-    instructions[0x5A] = Instruction(InstructionType.Ld, [
-            OR8(Register.E), OR8(Register.D)
-        ]);
-    instructions[0x5B] = Instruction(InstructionType.Ld, [
-            OR8(Register.E), OR8(Register.E)
-        ]);
-    instructions[0x5C] = Instruction(InstructionType.Ld, [
-            OR8(Register.E), OR8(Register.IYH)
-        ]);
-    instructions[0x5D] = Instruction(InstructionType.Ld, [
-            OR8(Register.E), OR8(Register.IYL)
-        ]);
-    instructions[0x5E] = Instruction(InstructionType.Ld, [OR8(Register.E), IY]);
-    instructions[0x5F] = Instruction(InstructionType.Ld, [
-            OR8(Register.E), OR8(Register.A)
-        ]);
-    instructions[0x60] = Instruction(InstructionType.Ld, [
-            OR8(Register.IYH), OR8(Register.B)
-        ]);
-    instructions[0x61] = Instruction(InstructionType.Ld, [
-            OR8(Register.IYH), OR8(Register.C)
-        ]);
-    instructions[0x62] = Instruction(InstructionType.Ld, [
-            OR8(Register.IYH), OR8(Register.D)
-        ]);
-    instructions[0x63] = Instruction(InstructionType.Ld, [
-            OR8(Register.IYH), OR8(Register.E)
-        ]);
-    instructions[0x64] = Instruction(InstructionType.Ld, [
-            OR8(Register.IYH), OR8(Register.IYH)
-        ]);
-    instructions[0x65] = Instruction(InstructionType.Ld, [
-            OR8(Register.IYH), OR8(Register.IYL)
-        ]);
-    instructions[0x66] = Instruction(InstructionType.Ld, [OR8(Register.H), IY]);
-    instructions[0x67] = Instruction(InstructionType.Ld, [
-            OR8(Register.IYH), OR8(Register.A)
-        ]);
-    instructions[0x68] = Instruction(InstructionType.Ld, [
-            OR8(Register.IYL), OR8(Register.B)
-        ]);
-    instructions[0x69] = Instruction(InstructionType.Ld, [
-            OR8(Register.IYL), OR8(Register.C)
-        ]);
-    instructions[0x6A] = Instruction(InstructionType.Ld, [
-            OR8(Register.IYL), OR8(Register.D)
-        ]);
-    instructions[0x6B] = Instruction(InstructionType.Ld, [
-            OR8(Register.IYL), OR8(Register.E)
-        ]);
-    instructions[0x6C] = Instruction(InstructionType.Ld, [
-            OR8(Register.IYL), OR8(Register.IYH)
-        ]);
-    instructions[0x6D] = Instruction(InstructionType.Ld, [
-            OR8(Register.IYL), OR8(Register.IYL)
-        ]);
-    instructions[0x6E] = Instruction(InstructionType.Ld, [OR8(Register.L), IY]);
-    instructions[0x6F] = Instruction(InstructionType.Ld, [
-            OR8(Register.IYL), OR8(Register.A)
-        ]);
-    instructions[0x70] = Instruction(InstructionType.Ld, [IY, OR8(Register.B)]);
-    instructions[0x71] = Instruction(InstructionType.Ld, [IY, OR8(Register.C)]);
-    instructions[0x72] = Instruction(InstructionType.Ld, [IY, OR8(Register.D)]);
-    instructions[0x73] = Instruction(InstructionType.Ld, [IY, OR8(Register.E)]);
-    instructions[0x74] = Instruction(InstructionType.Ld, [IY, OR8(Register.H)]);
-    instructions[0x75] = Instruction(InstructionType.Ld, [IY, OR8(Register.L)]);
-    instructions[0x77] = Instruction(InstructionType.Ld, [IY, OR8(Register.A)]);
-    instructions[0x78] = Instruction(InstructionType.Ld, [
-            OR8(Register.A), OR8(Register.B)
-        ]);
-    instructions[0x79] = Instruction(InstructionType.Ld, [
-            OR8(Register.A), OR8(Register.C)
-        ]);
-    instructions[0x7A] = Instruction(InstructionType.Ld, [
-            OR8(Register.A), OR8(Register.D)
-        ]);
-    instructions[0x7B] = Instruction(InstructionType.Ld, [
-            OR8(Register.A), OR8(Register.E)
-        ]);
-    instructions[0x7C] = Instruction(InstructionType.Ld, [
-            OR8(Register.A), OR8(Register.IYH)
-        ]);
-    instructions[0x7D] = Instruction(InstructionType.Ld, [
-            OR8(Register.A), OR8(Register.IYL)
-        ]);
-    instructions[0x7E] = Instruction(InstructionType.Ld, [OR8(Register.A), IY]);
-    instructions[0x7F] = Instruction(InstructionType.Ld, [
-            OR8(Register.A), OR8(Register.A)
-        ]);
-    instructions[0x80] = Instruction(InstructionType.Add, [
-            OR8(Register.A), OR8(Register.B)
-        ]);
-    instructions[0x81] = Instruction(InstructionType.Add, [
-            OR8(Register.A), OR8(Register.C)
-        ]);
-    instructions[0x82] = Instruction(InstructionType.Add, [
-            OR8(Register.A), OR8(Register.D)
-        ]);
-    instructions[0x83] = Instruction(InstructionType.Add, [
-            OR8(Register.A), OR8(Register.E)
-        ]);
-    instructions[0x84] = Instruction(InstructionType.Add, [
-            OR8(Register.A), OR8(Register.IYH)
-        ]);
-    instructions[0x85] = Instruction(InstructionType.Add, [
-            OR8(Register.A), OR8(Register.IYL)
-        ]);
-    instructions[0x86] = Instruction(InstructionType.Add, [OR8(Register.A), IY]);
-    instructions[0x87] = Instruction(InstructionType.Add, [
-            OR8(Register.A), OR8(Register.A)
-        ]);
-    instructions[0x88] = Instruction(InstructionType.Adc, [
-            OR8(Register.A), OR8(Register.B)
-        ]);
-    instructions[0x89] = Instruction(InstructionType.Adc, [
-            OR8(Register.A), OR8(Register.C)
-        ]);
-    instructions[0x8A] = Instruction(InstructionType.Adc, [
-            OR8(Register.A), OR8(Register.D)
-        ]);
-    instructions[0x8B] = Instruction(InstructionType.Adc, [
-            OR8(Register.A), OR8(Register.E)
-        ]);
-    instructions[0x8C] = Instruction(InstructionType.Adc, [
-            OR8(Register.A), OR8(Register.IYH)
-        ]);
-    instructions[0x8D] = Instruction(InstructionType.Adc, [
-            OR8(Register.A), OR8(Register.IYL)
-        ]);
-    instructions[0x8E] = Instruction(InstructionType.Adc, [OR8(Register.A), IY]);
-    instructions[0x8F] = Instruction(InstructionType.Adc, [
-            OR8(Register.A), OR8(Register.A)
-        ]);
-    instructions[0x90] = Instruction(InstructionType.Sub, [OR8(Register.B)]);
-    instructions[0x91] = Instruction(InstructionType.Sub, [OR8(Register.C)]);
-    instructions[0x92] = Instruction(InstructionType.Sub, [OR8(Register.D)]);
-    instructions[0x93] = Instruction(InstructionType.Sub, [OR8(Register.E)]);
-    instructions[0x94] = Instruction(InstructionType.Sub, [OR8(Register.IYH)]);
-    instructions[0x95] = Instruction(InstructionType.Sub, [OR8(Register.IYL)]);
-    instructions[0x96] = Instruction(InstructionType.Sub, [IY]);
-    instructions[0x97] = Instruction(InstructionType.Sub, [OR8(Register.A)]);
-    instructions[0x98] = Instruction(InstructionType.Sbc, [
-            OR8(Register.A), OR8(Register.B)
-        ]);
-    instructions[0x99] = Instruction(InstructionType.Sbc, [
-            OR8(Register.A), OR8(Register.C)
-        ]);
-    instructions[0x9A] = Instruction(InstructionType.Sbc, [
-            OR8(Register.A), OR8(Register.D)
-        ]);
-    instructions[0x9B] = Instruction(InstructionType.Sbc, [
-            OR8(Register.A), OR8(Register.E)
-        ]);
-    instructions[0x9C] = Instruction(InstructionType.Sbc, [
-            OR8(Register.A), OR8(Register.IYH)
-        ]);
-    instructions[0x9D] = Instruction(InstructionType.Sbc, [
-            OR8(Register.A), OR8(Register.IYL)
-        ]);
-    instructions[0x9E] = Instruction(InstructionType.Sbc, [OR8(Register.A), IY]);
-    instructions[0x9F] = Instruction(InstructionType.Sbc, [
-            OR8(Register.A), OR8(Register.A)
-        ]);
-    instructions[0xA0] = Instruction(InstructionType.And, [OR8(Register.B)]);
-    instructions[0xA1] = Instruction(InstructionType.And, [OR8(Register.C)]);
-    instructions[0xA2] = Instruction(InstructionType.And, [OR8(Register.D)]);
-    instructions[0xA3] = Instruction(InstructionType.And, [OR8(Register.E)]);
-    instructions[0xA4] = Instruction(InstructionType.And, [OR8(Register.IYH)]);
-    instructions[0xA5] = Instruction(InstructionType.And, [OR8(Register.IYL)]);
-    instructions[0xA6] = Instruction(InstructionType.And, [IY]);
-    instructions[0xA7] = Instruction(InstructionType.And, [OR8(Register.A)]);
-    instructions[0xA8] = Instruction(InstructionType.Xor, [OR8(Register.B)]);
-    instructions[0xA9] = Instruction(InstructionType.Xor, [OR8(Register.C)]);
-    instructions[0xAA] = Instruction(InstructionType.Xor, [OR8(Register.D)]);
-    instructions[0xAB] = Instruction(InstructionType.Xor, [OR8(Register.E)]);
-    instructions[0xAC] = Instruction(InstructionType.Xor, [OR8(Register.IYH)]);
-    instructions[0xAD] = Instruction(InstructionType.Xor, [OR8(Register.IYL)]);
-    instructions[0xAE] = Instruction(InstructionType.Xor, [IY]);
-    instructions[0xAF] = Instruction(InstructionType.Xor, [OR8(Register.A)]);
-    instructions[0xB0] = Instruction(InstructionType.Or, [OR8(Register.B)]);
-    instructions[0xB1] = Instruction(InstructionType.Or, [OR8(Register.C)]);
-    instructions[0xB2] = Instruction(InstructionType.Or, [OR8(Register.D)]);
-    instructions[0xB3] = Instruction(InstructionType.Or, [OR8(Register.E)]);
-    instructions[0xB4] = Instruction(InstructionType.Or, [OR8(Register.IYH)]);
-    instructions[0xB5] = Instruction(InstructionType.Or, [OR8(Register.IYL)]);
-    instructions[0xB6] = Instruction(InstructionType.Or, [IY]);
-    instructions[0xB7] = Instruction(InstructionType.Or, [OR8(Register.A)]);
-    instructions[0xB8] = Instruction(InstructionType.Cp, [OR8(Register.B)]);
-    instructions[0xB9] = Instruction(InstructionType.Cp, [OR8(Register.C)]);
-    instructions[0xBA] = Instruction(InstructionType.Cp, [OR8(Register.D)]);
-    instructions[0xBB] = Instruction(InstructionType.Cp, [OR8(Register.E)]);
-    instructions[0xBC] = Instruction(InstructionType.Cp, [OR8(Register.IYH)]);
-    instructions[0xBD] = Instruction(InstructionType.Cp, [OR8(Register.IYL)]);
-    instructions[0xBE] = Instruction(InstructionType.Cp, [IY]);
-    instructions[0xBF] = Instruction(InstructionType.Cp, [OR8(Register.A)]);
-    instructions[0xE1] = Instruction(InstructionType.Pop, [OR16(Register.IY)]);
-    instructions[0xE3] = Instruction(InstructionType.Ex, [
-            OR16_LK(Register.SP), OR16(Register.IY)
-        ]);
-    instructions[0xE5] = Instruction(InstructionType.Push, [OR16(Register.IY)]);
-    instructions[0xE9] = Instruction(InstructionType.Jp, [OR16_LK(Register.IY)]);
-    instructions[0xF9] = Instruction(InstructionType.Ld, [
-            OR16(Register.SP), OR16(Register.IY)
-        ]);
+            OR16(Register.HL), IMM16_LK
+        ]);
+
+    instructions[0x20] = Instruction(InstructionType.Jr, [
+            Con(ConditionVariety.NZ), LIMM8
+        ]);
+    instructions[0x28] = Instruction(InstructionType.Jr, [
+            Con(ConditionVariety.Z), LIMM8
+        ]);
+    instructions[0x30] = Instruction(InstructionType.Jr, [
+            Con(ConditionVariety.NC), LIMM8
+        ]);
+    instructions[0x38] = Instruction(InstructionType.Jr, [
+            Con(ConditionVariety.C), LIMM8
+        ]);
+
+    instructions[0x86] = Instruction(InstructionType.Add, [
+            OR8(Register.A), OR16_LK(Register.HL)
+        ]);
+    instructions[0x8E] = Instruction(InstructionType.Adc, [
+            OR8(Register.A), OR16_LK(Register.HL)
+        ]);
+    instructions[0x9E] = Instruction(InstructionType.Sbc, [
+            OR8(Register.A), OR16_LK(Register.HL)
+        ]);
+    instructions[0xDE] = Instruction(InstructionType.Sbc, [
+            OR8(Register.A), IMM8
+        ]);
+    instructions[0xa6] = Instruction(InstructionType.And, [OR16_LK(Register.HL)]);
+    instructions[0xb6] = Instruction(InstructionType.Or, [OR16_LK(Register.HL)]);
+    instructions[0x96] = Instruction(InstructionType.Sub, [OR16_LK(Register.HL)]);
+    instructions[0xae] = Instruction(InstructionType.Xor, [OR16_LK(Register.HL)]);
+    instructions[0xbe] = Instruction(InstructionType.Cp, [OR16_LK(Register.HL)]);
+    instructions[0xc3] = Instruction(InstructionType.Jp, [LIMM16]);
+    instructions[0xc9] = Instruction(InstructionType.Ret, []);
+    instructions[0xcb] = Instruction(InstructionType.Indirection, [], BitIndirection());
+    instructions[0xdd] = Instruction(InstructionType.Indirection, [], IxIndirection());
+    instructions[0xed] = Instruction(InstructionType.Indirection, [], MiscIndirection());
+    instructions[0xfd] = Instruction(InstructionType.Indirection, [], IyIndirection());
+
+    instructions[0xc6] = Instruction(InstructionType.Add, [
+            OR8(Register.A), IMM8
+        ]);
+    instructions[0xd3] = Instruction(InstructionType.Out, [
+            IMM8, OR8(Register.A)
+        ]);
+    instructions[0xd6] = Instruction(InstructionType.Sub, [IMM8]);
+    instructions[0xd9] = Instruction(InstructionType.Exx, []);
+    instructions[0xdb] = Instruction(InstructionType.In, [OR8(Register.A), IMM8]);
+
+    instructions[0xCD] = Instruction(InstructionType.Call, [LIMM16]);
+    instructions[0xCE] = Instruction(InstructionType.Adc, [
+            OR8(Register.A), IMM8
+        ]);
+
+    instructions[0xe3] = Instruction(InstructionType.Ex, [
+            OR16_LK(Register.SP), OR16(Register.HL)
+        ]);
+    instructions[0xe6] = Instruction(InstructionType.And, [IMM8]);
+    instructions[0xe9] = Instruction(InstructionType.Jp, [OR16_LK(Register.HL)]);
+    instructions[0xeb] = Instruction(InstructionType.Ex, [
+            OR16(Register.DE), OR16(Register.HL)
+        ]);
+    instructions[0xee] = Instruction(InstructionType.Xor, [IMM8]);
+    instructions[0xf6] = Instruction(InstructionType.Or, [IMM8]);
+    instructions[0xfe] = Instruction(InstructionType.Cp, [IMM8]);
+    instructions[0xf3] = Instruction(InstructionType.Di, []);
+    instructions[0xfb] = Instruction(InstructionType.Ei, []);
+    instructions[0xf9] = Instruction(InstructionType.Ld, [
+            OR16(Register.SP), OR16(Register.HL)
+        ]);
+    static foreach (i, cond; Condition_ccc) {
+        instructions[0b1100_0100 | (i << 3)] = Instruction(InstructionType.Call, [
+                cond, LIMM16
+            ]);
+        instructions[0b1100_0010 | (i << 3)] = Instruction(InstructionType.Jp, [
+                cond, LIMM16
+            ]);
+        instructions[0b1100_0000 | (i << 3)] = Instruction(InstructionType.Ret, [
+                cond
+            ]);
+    }
+    static foreach (rst_v; 0 .. 0b111 + 1) {
+        {
+            Operand rstOperand;
+            rstOperand.variety = OperandVariety.Rst;
+            rstOperand.rst = [0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38][rst_v];
+            instructions[0b1100_0111 | (rst_v << 3)] = Instruction(InstructionType.Rst, [
+                    rstOperand
+                ]);
+        }
+    }
+    static foreach (i, opr; Reg8_rrr)
+        if (opr.register != Register.UNKNOWN) {
+            instructions[0b0111_0000 | i] = Instruction(InstructionType.Ld, [
+                    OR16_LK(Register.HL), opr
+                ]);
+            instructions[0b1000_1000 | i] = Instruction(InstructionType.Adc, [
+                    OR8(Register.A), opr
+                ]);
+            instructions[0b1000_0000 | i] = Instruction(InstructionType.Add, [
+                    OR8(Register.A), opr
+                ]);
+            instructions[0b1010_0000 | i] = Instruction(InstructionType.And, [
+                    opr
+                ]);
+            instructions[0b1011_1000 | i] = Instruction(InstructionType.Cp, [
+                    opr
+                ]);
+            instructions[0b1011_0000 | i] = Instruction(InstructionType.Or, [
+                    opr
+                ]);
+            instructions[0b0000_0101 | (i << 3)] = Instruction(InstructionType.Dec, [
+                    opr
+                ]);
+            instructions[0b0000_0100 | (i << 3)] = Instruction(InstructionType.Inc, [
+                    opr
+                ]);
+            instructions[0b0000_0110 | (i << 3)] = Instruction(InstructionType.Ld, [
+                    opr, IMM8
+                ]);
+            instructions[0b0100_0110 | (i << 3)] = Instruction(InstructionType.Ld, [
+                    opr, OR16_LK(Register.HL)
+                ]);
+            instructions[0b1001_1000 | i] = Instruction(InstructionType.Sbc, [
+                    OR8(Register.A), opr
+                ]);
+            instructions[0b1001_0000 | i] = Instruction(InstructionType.Sub, [
+                    opr
+                ]);
+            instructions[0b1010_1000 | i] = Instruction(InstructionType.Xor, [
+                    opr
+                ]);
+
+        }
+    static foreach (i, opr; Reg16_pp) {
+        instructions[0b1100_0001 | (i << 4)] = Instruction(InstructionType.Pop, [
+                opr
+            ]);
+        instructions[0b1100_0101 | (i << 4)] = Instruction(InstructionType.Push, [
+                opr
+            ]);
+    }
+    static foreach (i, opr; Reg16_qq) {
+        instructions[0b0000_1001 | (i << 4)] = Instruction(InstructionType.Add, [
+                OR16(Register.HL), opr
+            ]);
+        instructions[0b0000_1011 | (i << 4)] = Instruction(InstructionType.Dec, [
+                opr
+            ]);
+        instructions[0b0000_0011 | (i << 4)] = Instruction(InstructionType.Inc, [
+                opr
+            ]);
+        instructions[0b0000_0001 | (i << 4)] = Instruction(InstructionType.Ld, [
+                opr, IMM16
+            ]);
+    }
+    static foreach (to_index, reg_to; Reg8_rrr)
+        if (reg_to.register != Register.UNKNOWN) {
+            static foreach (from_index, reg_from; Reg8_rrr)
+                if (reg_from.register != Register.UNKNOWN) {
+                    instructions[cast(ubyte) 0b0100_0000 | (to_index << 3) | from_index] = Instruction(
+                        InstructionType.Ld, [reg_to, reg_from]);
+                }
+        }
+
     return instructions;
 }
 
-static Instruction[ubyte] MAIN = null;
+const(Instruction[0xFF + 1]) MAIN = genInstructionSet();
 
 Instruction getInstruction(const(ubyte[]) data, ref size_t index) => getInstruction_nullable(
     data, index);
@@ -2544,10 +2544,7 @@ Instruction getInstruction(const(ubyte[]) data, ref size_t index) => getInstruct
 Nullable!Instruction getInstruction_nullable(const(ubyte[]) data, ref size_t index) {
     size_t oldindex = index;
     Instruction ins;
-    const(Instruction)[ubyte] indexMe;
-    if (MAIN == null)
-        MAIN = genMainInstructions();
-    indexMe = MAIN;
+    const(Instruction)[] indexMe = MAIN;
     ubyte[] opcodeCollection;
     bool isIBit = false;
     size_t temp;
@@ -2557,27 +2554,19 @@ Nullable!Instruction getInstruction_nullable(const(ubyte[]) data, ref size_t ind
             return nullable!Instruction(null);
         ubyte indexWith = data[temp];
         opcodeCollection ~= indexWith;
-        if (indexWith in indexMe) {
-            ins = cast(Instruction) indexMe[indexWith];
-            if (ins.type != InstructionType.Indirection)
-                break;
-            indexMe = ins.indirection;
-            isIBit = ins.isIBitIndirection;
-        }
-        else {
-            return nullable!Instruction(null);
-        }
+
+        ins = cast(Instruction) indexMe[indexWith];
+        if (ins.type != InstructionType.Indirection)
+            break;
+        indexMe = ins.indirection;
+        isIBit = ins.isIBitIndirection;
+
     }
     while (ins.type == InstructionType.Indirection);
 
     Operand[] operands = new Operand[ins.operands.length];
     operands[0 .. ins.operands.length] = ins.operands;
     ins.operands = operands;
-
-    // if (ins.type == InstructionType.Ret){
-    // ins.writeln;
-    // opcodeCollection.writeln;
-    // }
 
     foreach (ref value; ins.operands) {
         switch (value.variety) {
@@ -2617,10 +2606,4 @@ Nullable!Instruction getInstruction_nullable(const(ubyte[]) data, ref size_t ind
     }
     ins.byteSize = index - oldindex;
     return nullable!Instruction(ins);
-}
-
-unittest {
-    // size_t i;
-    // getInstruction([0xCB,0x03], i).toAssembly.writeln;
-
 }
