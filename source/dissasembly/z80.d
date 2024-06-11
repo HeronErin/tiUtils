@@ -2544,7 +2544,7 @@ Instruction getInstruction(const(ubyte[]) data, ref size_t index) => getInstruct
 Nullable!Instruction getInstruction_nullable(const(ubyte[]) data, ref size_t index) {
     size_t oldindex = index;
     Instruction ins;
-    const(Instruction)[] indexMe = MAIN;
+    const(Instruction)[0xFF+1] indexMe = MAIN;
     ubyte[] opcodeCollection;
     bool isIBit = false;
     size_t temp;
