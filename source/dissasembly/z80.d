@@ -485,6 +485,7 @@ class OpcodeHolder {
         }
         level.type = LevelType.Instruction;
         level.instruction = instruction;
+        level.instruction.byteSize = opcode.length;
     }
 
     const pure Nullable!Instruction lookup(const(ubyte[]) data, ref size_t index) {
@@ -552,193 +553,101 @@ class OpcodeHolder {
 
 pure OpcodeHolder makeGlobalLookup() {
     OpcodeHolder hold = new OpcodeHolder;
-    hold.add([0x8e], Instruction(InstructionType.Adc, [
-                OR8(Register.A), OR16_LK(Register.HL)
-            ]));
-    hold.add([0xdd, 0x8e, 0xfff], Instruction(InstructionType.Adc, [
-                OR8(Register.A), IXOFF
-            ]));
-    hold.add([0xfd, 0x8e, 0xfff], Instruction(InstructionType.Adc, [
-                OR8(Register.A), IYOFF
-            ]));
-    hold.add([0xce, 0xfff], Instruction(InstructionType.Adc, [
-                OR8(Register.A), IMM8
-            ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([(rI & 0xFF) | 0x88], Instruction(InstructionType.Adc, [
-                        OR8(Register.A), r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[1])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, (rI & 0xFF) | 0x88], Instruction(InstructionType.Adc, [
-                        OR8(Register.A), r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[2])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, (rI & 0xFF) | 0x88], Instruction(InstructionType.Adc, [
-                        OR8(Register.A), r
-                    ]));
-    foreach (reg16I, reg16; SIXTEENBIT_REGS[0])
-        hold.add([0xed, (reg16I << 4 & 0xFF) | 0x4a], Instruction(InstructionType.Adc, [
-                    OR16(Register.HL), reg16
-                ]));
-    hold.add([0x86], Instruction(InstructionType.Add, [
-                OR8(Register.A), OR16_LK(Register.HL)
-            ]));
-    hold.add([0xdd, 0x86, 0xfff], Instruction(InstructionType.Add, [
-                OR8(Register.A), IXOFF
-            ]));
-    hold.add([0xfd, 0x86, 0xfff], Instruction(InstructionType.Add, [
-                OR8(Register.A), IYOFF
-            ]));
-    hold.add([0xc6, 0xfff], Instruction(InstructionType.Add, [
-                OR8(Register.A), IMM8
-            ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([(rI & 0xFF) | 0x80], Instruction(InstructionType.Add, [
-                        OR8(Register.A), r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[1])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, (rI & 0xFF) | 0x80], Instruction(InstructionType.Add, [
-                        OR8(Register.A), r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[2])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, (rI & 0xFF) | 0x80], Instruction(InstructionType.Add, [
-                        OR8(Register.A), r
-                    ]));
-    foreach (reg16I, reg16; SIXTEENBIT_REGS[0])
-        hold.add([(reg16I << 4 & 0xFF) | 0x9], Instruction(InstructionType.Add, [
-                    OR16(Register.HL), reg16
-                ]));
-    foreach (reg16I, reg16; SIXTEENBIT_REGS[1])
-        hold.add([0xdd, (reg16I << 4 & 0xFF) | 0x9], Instruction(InstructionType.Add, [
-                    OR16(Register.IX), reg16
-                ]));
-    foreach (reg16I, reg16; SIXTEENBIT_REGS[2])
-        hold.add([0xfd, (reg16I << 4 & 0xFF) | 0x9], Instruction(InstructionType.Add, [
-                    OR16(Register.IY), reg16
-                ]));
+    hold.add([0x8e], Instruction(InstructionType.Adc, [OR8(Register.A), OR16_LK(Register.HL)]));
+    hold.add([0xdd, 0x8e, 0xfff], Instruction(InstructionType.Adc, [OR8(Register.A), IXOFF]));
+    hold.add([0xfd, 0x8e, 0xfff], Instruction(InstructionType.Adc, [OR8(Register.A), IYOFF]));
+    hold.add([0xce, 0xfff], Instruction(InstructionType.Adc, [OR8(Register.A), IMM8]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([(rI & 0xFF) | 0x88], Instruction(InstructionType.Adc, [OR8(Register.A), r]));
+    foreach(rI, r ; EIGHTBIT_REGS[1]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, (rI & 0xFF) | 0x88], Instruction(InstructionType.Adc, [OR8(Register.A), r]));
+    foreach(rI, r ; EIGHTBIT_REGS[2]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, (rI & 0xFF) | 0x88], Instruction(InstructionType.Adc, [OR8(Register.A), r]));
+    foreach(reg16I, reg16 ; SIXTEENBIT_REGS[0])
+            hold.add([0xed, (reg16I << 4 & 0xFF) | 0x4a], Instruction(InstructionType.Adc, [OR16(Register.HL), reg16]));
+    hold.add([0x86], Instruction(InstructionType.Add, [OR8(Register.A), OR16_LK(Register.HL)]));
+    hold.add([0xdd, 0x86, 0xfff], Instruction(InstructionType.Add, [OR8(Register.A), IXOFF]));
+    hold.add([0xfd, 0x86, 0xfff], Instruction(InstructionType.Add, [OR8(Register.A), IYOFF]));
+    hold.add([0xc6, 0xfff], Instruction(InstructionType.Add, [OR8(Register.A), IMM8]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([(rI & 0xFF) | 0x80], Instruction(InstructionType.Add, [OR8(Register.A), r]));
+    foreach(rI, r ; EIGHTBIT_REGS[1]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, (rI & 0xFF) | 0x80], Instruction(InstructionType.Add, [OR8(Register.A), r]));
+    foreach(rI, r ; EIGHTBIT_REGS[2]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, (rI & 0xFF) | 0x80], Instruction(InstructionType.Add, [OR8(Register.A), r]));
+    foreach(reg16I, reg16 ; SIXTEENBIT_REGS[0])
+            hold.add([(reg16I << 4 & 0xFF) | 0x9], Instruction(InstructionType.Add, [OR16(Register.HL), reg16]));
+    foreach(reg16I, reg16 ; SIXTEENBIT_REGS[1])
+            hold.add([0xdd, (reg16I << 4 & 0xFF) | 0x9], Instruction(InstructionType.Add, [OR16(Register.IX), reg16]));
+    foreach(reg16I, reg16 ; SIXTEENBIT_REGS[2])
+            hold.add([0xfd, (reg16I << 4 & 0xFF) | 0x9], Instruction(InstructionType.Add, [OR16(Register.IY), reg16]));
     hold.add([0xa6], Instruction(InstructionType.And, [OR16_LK(Register.HL)]));
     hold.add([0xdd, 0xa6, 0xfff], Instruction(InstructionType.And, [IXOFF]));
     hold.add([0xfd, 0xa6, 0xfff], Instruction(InstructionType.And, [IYOFF]));
     hold.add([0xe6, 0xfff], Instruction(InstructionType.And, [IMM8]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
             hold.add([(rI & 0xFF) | 0xa0], Instruction(InstructionType.And, [r]));
-    foreach (rI, r; EIGHTBIT_REGS[1])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, (rI & 0xFF) | 0xa0], Instruction(InstructionType.And, [
-                        r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[2])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, (rI & 0xFF) | 0xa0], Instruction(InstructionType.And, [
-                        r
-                    ]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xcb, (bit << 3 & 0xFF) | 0x46], Instruction(InstructionType.Bit, [
-                    PIMM8(cast(ubyte) bit), OR16_LK(Register.HL)
-                ]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x46], Instruction(
-                InstructionType.Bit, [PIMM8(cast(ubyte) bit), IXOFF]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x40], Instruction(
-                InstructionType.Bit, [PIMM8(cast(ubyte) bit), IXOFF]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x41], Instruction(
-                InstructionType.Bit, [PIMM8(cast(ubyte) bit), IXOFF]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x42], Instruction(
-                InstructionType.Bit, [PIMM8(cast(ubyte) bit), IXOFF]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x43], Instruction(
-                InstructionType.Bit, [PIMM8(cast(ubyte) bit), IXOFF]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x44], Instruction(
-                InstructionType.Bit, [PIMM8(cast(ubyte) bit), IXOFF]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x45], Instruction(
-                InstructionType.Bit, [PIMM8(cast(ubyte) bit), IXOFF]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x47], Instruction(
-                InstructionType.Bit, [PIMM8(cast(ubyte) bit), IXOFF]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x46], Instruction(
-                InstructionType.Bit, [PIMM8(cast(ubyte) bit), IYOFF]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x40], Instruction(
-                InstructionType.Bit, [PIMM8(cast(ubyte) bit), IYOFF]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x41], Instruction(
-                InstructionType.Bit, [PIMM8(cast(ubyte) bit), IYOFF]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x42], Instruction(
-                InstructionType.Bit, [PIMM8(cast(ubyte) bit), IYOFF]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x43], Instruction(
-                InstructionType.Bit, [PIMM8(cast(ubyte) bit), IYOFF]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x44], Instruction(
-                InstructionType.Bit, [PIMM8(cast(ubyte) bit), IYOFF]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x45], Instruction(
-                InstructionType.Bit, [PIMM8(cast(ubyte) bit), IYOFF]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x47], Instruction(
-                InstructionType.Bit, [PIMM8(cast(ubyte) bit), IYOFF]));
-    foreach (bit; 0 .. 8)
-        foreach (rI, r; EIGHTBIT_REGS[0])
-            if (r.variety != OperandVariety.Unknown)
-                hold.add([0xcb, (bit << 3 & 0xFF) | (rI & 0xFF) | 0x40], Instruction(
-                        InstructionType.Bit, [PIMM8(cast(ubyte) bit), r]));
-    hold.add([0xdc, 0xfff, 0xfff], Instruction(InstructionType.Call, [
-                OR8(Register.C), IMM16
-            ]));
-    hold.add([0xfc, 0xfff, 0xfff], Instruction(InstructionType.Call, [
-                CON(ConditionVariety.M), IMM16
-            ]));
-    hold.add([0xd4, 0xfff, 0xfff], Instruction(InstructionType.Call, [
-                CON(ConditionVariety.NC), IMM16
-            ]));
-    hold.add([0xc4, 0xfff, 0xfff], Instruction(InstructionType.Call, [
-                CON(ConditionVariety.NZ), IMM16
-            ]));
-    hold.add([0xf4, 0xfff, 0xfff], Instruction(InstructionType.Call, [
-                CON(ConditionVariety.P), IMM16
-            ]));
-    hold.add([0xec, 0xfff, 0xfff], Instruction(InstructionType.Call, [
-                CON(ConditionVariety.PE), IMM16
-            ]));
-    hold.add([0xe4, 0xfff, 0xfff], Instruction(InstructionType.Call, [
-                CON(ConditionVariety.PO), IMM16
-            ]));
-    hold.add([0xcc, 0xfff, 0xfff], Instruction(InstructionType.Call, [
-                CON(ConditionVariety.Z), IMM16
-            ]));
-    hold.add([0xcd, 0xfff, 0xfff], Instruction(InstructionType.Call, [IMM16]));
+    foreach(rI, r ; EIGHTBIT_REGS[1]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, (rI & 0xFF) | 0xa0], Instruction(InstructionType.And, [r]));
+    foreach(rI, r ; EIGHTBIT_REGS[2]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, (rI & 0xFF) | 0xa0], Instruction(InstructionType.And, [r]));
+    foreach(bit ; 0..8)
+            hold.add([0xcb, (bit << 3 & 0xFF) | 0x46], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), OR16_LK(Register.HL)]));
+    foreach(bit ; 0..8)
+            hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x46], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), IXOFF]));
+    foreach(bit ; 0..8)
+            hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x40], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), IXOFF]));
+    foreach(bit ; 0..8)
+            hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x41], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), IXOFF]));
+    foreach(bit ; 0..8)
+            hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x42], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), IXOFF]));
+    foreach(bit ; 0..8)
+            hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x43], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), IXOFF]));
+    foreach(bit ; 0..8)
+            hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x44], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), IXOFF]));
+    foreach(bit ; 0..8)
+            hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x45], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), IXOFF]));
+    foreach(bit ; 0..8)
+            hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x47], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), IXOFF]));
+    foreach(bit ; 0..8)
+            hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x46], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), IYOFF]));
+    foreach(bit ; 0..8)
+            hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x40], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), IYOFF]));
+    foreach(bit ; 0..8)
+            hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x41], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), IYOFF]));
+    foreach(bit ; 0..8)
+            hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x42], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), IYOFF]));
+    foreach(bit ; 0..8)
+            hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x43], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), IYOFF]));
+    foreach(bit ; 0..8)
+            hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x44], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), IYOFF]));
+    foreach(bit ; 0..8)
+            hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x45], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), IYOFF]));
+    foreach(bit ; 0..8)
+            hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x47], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), IYOFF]));
+    foreach(bit ; 0..8)
+            foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+                    hold.add([0xcb, (bit << 3 & 0xFF) | (rI & 0xFF) | 0x40], Instruction(InstructionType.Bit, [PIMM8(cast(ubyte) bit), r]));
+    hold.add([0xdc, 0xfff, 0xfff], Instruction(InstructionType.Call, [OR8(Register.C), LIMM16]));
+    hold.add([0xfc, 0xfff, 0xfff], Instruction(InstructionType.Call, [CON(ConditionVariety.M), LIMM16]));
+    hold.add([0xd4, 0xfff, 0xfff], Instruction(InstructionType.Call, [CON(ConditionVariety.NC), LIMM16]));
+    hold.add([0xc4, 0xfff, 0xfff], Instruction(InstructionType.Call, [CON(ConditionVariety.NZ), LIMM16]));
+    hold.add([0xf4, 0xfff, 0xfff], Instruction(InstructionType.Call, [CON(ConditionVariety.P), LIMM16]));
+    hold.add([0xec, 0xfff, 0xfff], Instruction(InstructionType.Call, [CON(ConditionVariety.PE), LIMM16]));
+    hold.add([0xe4, 0xfff, 0xfff], Instruction(InstructionType.Call, [CON(ConditionVariety.PO), LIMM16]));
+    hold.add([0xcc, 0xfff, 0xfff], Instruction(InstructionType.Call, [CON(ConditionVariety.Z), LIMM16]));
+    hold.add([0xcd, 0xfff, 0xfff], Instruction(InstructionType.Call, [LIMM16]));
     hold.add([0x3f], Instruction(InstructionType.Ccf, []));
     hold.add([0xbe], Instruction(InstructionType.Cp, [OR16_LK(Register.HL)]));
     hold.add([0xdd, 0xbe, 0xfff], Instruction(InstructionType.Cp, [IXOFF]));
     hold.add([0xfd, 0xbe, 0xfff], Instruction(InstructionType.Cp, [IYOFF]));
     hold.add([0xfe, 0xfff], Instruction(InstructionType.Cp, [IMM8]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
             hold.add([(rI & 0xFF) | 0xb8], Instruction(InstructionType.Cp, [r]));
-    foreach (rI, r; EIGHTBIT_REGS[1])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, (rI & 0xFF) | 0xb8], Instruction(InstructionType.Cp, [
-                        r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[2])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, (rI & 0xFF) | 0xb8], Instruction(InstructionType.Cp, [
-                        r
-                    ]));
+    foreach(rI, r ; EIGHTBIT_REGS[1]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, (rI & 0xFF) | 0xb8], Instruction(InstructionType.Cp, [r]));
+    foreach(rI, r ; EIGHTBIT_REGS[2]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, (rI & 0xFF) | 0xb8], Instruction(InstructionType.Cp, [r]));
     hold.add([0xed, 0xa9], Instruction(InstructionType.Cpd, []));
     hold.add([0xed, 0xb9], Instruction(InstructionType.Cpdr, []));
     hold.add([0xed, 0xa1], Instruction(InstructionType.Cpi, []));
@@ -750,298 +659,128 @@ pure OpcodeHolder makeGlobalLookup() {
     hold.add([0xfd, 0x35, 0xfff], Instruction(InstructionType.Dec, [IYOFF]));
     hold.add([0xdd, 0x2b], Instruction(InstructionType.Dec, [OR16(Register.IX)]));
     hold.add([0xfd, 0x2b], Instruction(InstructionType.Dec, [OR16(Register.IY)]));
-    foreach (reg16I, reg16; SIXTEENBIT_REGS[0])
-        hold.add([(reg16I << 4 & 0xFF) | 0xb], Instruction(InstructionType.Dec, [
-                    reg16
-                ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([(rI << 3 & 0xFF) | 0x5], Instruction(InstructionType.Dec, [
-                        r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[1])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, (rI << 3 & 0xFF) | 0x5], Instruction(InstructionType.Dec, [
-                        r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[2])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, (rI << 3 & 0xFF) | 0x5], Instruction(InstructionType.Dec, [
-                        r
-                    ]));
+    foreach(reg16I, reg16 ; SIXTEENBIT_REGS[0])
+            hold.add([(reg16I << 4 & 0xFF) | 0xb], Instruction(InstructionType.Dec, [reg16]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([(rI << 3 & 0xFF) | 0x5], Instruction(InstructionType.Dec, [r]));
+    foreach(rI, r ; EIGHTBIT_REGS[1]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, (rI << 3 & 0xFF) | 0x5], Instruction(InstructionType.Dec, [r]));
+    foreach(rI, r ; EIGHTBIT_REGS[2]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, (rI << 3 & 0xFF) | 0x5], Instruction(InstructionType.Dec, [r]));
     hold.add([0xf3], Instruction(InstructionType.Di, []));
     hold.add([0x10, 0xfff], Instruction(InstructionType.Djnz, [LIMM8]));
     hold.add([0xfb], Instruction(InstructionType.Ei, []));
-    hold.add([0xe3], Instruction(InstructionType.Ex, [
-                OR16_LK(Register.SP), OR16(Register.HL)
-            ]));
-    hold.add([0xdd, 0xe3], Instruction(InstructionType.Ex, [
-                OR16_LK(Register.SP), OR16(Register.IX)
-            ]));
-    hold.add([0xfd, 0xe3], Instruction(InstructionType.Ex, [
-                OR16_LK(Register.SP), OR16(Register.IY)
-            ]));
-    hold.add([0x8], Instruction(InstructionType.Ex, [
-                OR16(Register.AF), OR16(Register.SHADOW_AF)
-            ]));
-    hold.add([0xeb], Instruction(InstructionType.Ex, [
-                OR16(Register.DE), OR16(Register.HL)
-            ]));
+    hold.add([0xe3], Instruction(InstructionType.Ex, [OR16_LK(Register.SP), OR16(Register.HL)]));
+    hold.add([0xdd, 0xe3], Instruction(InstructionType.Ex, [OR16_LK(Register.SP), OR16(Register.IX)]));
+    hold.add([0xfd, 0xe3], Instruction(InstructionType.Ex, [OR16_LK(Register.SP), OR16(Register.IY)]));
+    hold.add([0x8], Instruction(InstructionType.Ex, [OR16(Register.AF), OR16(Register.SHADOW_AF)]));
+    hold.add([0xeb], Instruction(InstructionType.Ex, [OR16(Register.DE), OR16(Register.HL)]));
     hold.add([0xd9], Instruction(InstructionType.Exx, []));
     hold.add([0x76], Instruction(InstructionType.Halt, []));
     hold.add([0xed, 0x46], Instruction(InstructionType.Im, [PIMM8(0)]));
     hold.add([0xed, 0x56], Instruction(InstructionType.Im, [PIMM8(1)]));
     hold.add([0xed, 0x5e], Instruction(InstructionType.Im, [PIMM8(2)]));
     hold.add([0xed, 0x70], Instruction(InstructionType.In, [OR8_LK(Register.C)]));
-    hold.add([0xdb, 0xfff], Instruction(InstructionType.In, [
-                OR8(Register.A), IMM8_LK
-            ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xed, (rI << 3 & 0xFF) | 0x40], Instruction(InstructionType.In, [
-                        r, OR8_LK(Register.C)
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xed, (rI << 3 & 0xFF) | 0x0, 0xfff], Instruction(InstructionType.In0, [
-                        r, IMM8_LK
-                    ]));
+    hold.add([0xdb, 0xfff], Instruction(InstructionType.In, [OR8(Register.A), IMM8_LK]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xed, (rI << 3 & 0xFF) | 0x40], Instruction(InstructionType.In, [r, OR8_LK(Register.C)]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xed, (rI << 3 & 0xFF) | 0x0, 0xfff], Instruction(InstructionType.In0, [r, IMM8_LK]));
     hold.add([0x34], Instruction(InstructionType.Inc, [OR16_LK(Register.HL)]));
     hold.add([0xdd, 0x34, 0xfff], Instruction(InstructionType.Inc, [IXOFF]));
     hold.add([0xfd, 0x34, 0xfff], Instruction(InstructionType.Inc, [IYOFF]));
     hold.add([0xdd, 0x23], Instruction(InstructionType.Inc, [OR16(Register.IX)]));
     hold.add([0xfd, 0x23], Instruction(InstructionType.Inc, [OR16(Register.IY)]));
-    foreach (reg16I, reg16; SIXTEENBIT_REGS[0])
-        hold.add([(reg16I << 4 & 0xFF) | 0x3], Instruction(InstructionType.Inc, [
-                    reg16
-                ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([(rI << 3 & 0xFF) | 0x4], Instruction(InstructionType.Inc, [
-                        r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[1])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, (rI << 3 & 0xFF) | 0x4], Instruction(InstructionType.Inc, [
-                        r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[2])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, (rI << 3 & 0xFF) | 0x4], Instruction(InstructionType.Inc, [
-                        r
-                    ]));
+    foreach(reg16I, reg16 ; SIXTEENBIT_REGS[0])
+            hold.add([(reg16I << 4 & 0xFF) | 0x3], Instruction(InstructionType.Inc, [reg16]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([(rI << 3 & 0xFF) | 0x4], Instruction(InstructionType.Inc, [r]));
+    foreach(rI, r ; EIGHTBIT_REGS[1]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, (rI << 3 & 0xFF) | 0x4], Instruction(InstructionType.Inc, [r]));
+    foreach(rI, r ; EIGHTBIT_REGS[2]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, (rI << 3 & 0xFF) | 0x4], Instruction(InstructionType.Inc, [r]));
     hold.add([0xed, 0xaa], Instruction(InstructionType.Ind, []));
     hold.add([0xed, 0xba], Instruction(InstructionType.Indr, []));
     hold.add([0xed, 0xa2], Instruction(InstructionType.Ini, []));
     hold.add([0xed, 0xb2], Instruction(InstructionType.Inir, []));
     hold.add([0xe9], Instruction(InstructionType.Jp, [OR16_LK(Register.HL)]));
-    hold.add([0xdd, 0xe9], Instruction(InstructionType.Jp, [
-                OR16_LK(Register.IX)
-            ]));
-    hold.add([0xfd, 0xe9], Instruction(InstructionType.Jp, [
-                OR16_LK(Register.IY)
-            ]));
-    hold.add([0xda, 0xfff, 0xfff], Instruction(InstructionType.Jp, [
-                OR8(Register.C), IMM16
-            ]));
-    hold.add([0xfa, 0xfff, 0xfff], Instruction(InstructionType.Jp, [
-                CON(ConditionVariety.M), IMM16
-            ]));
-    hold.add([0xd2, 0xfff, 0xfff], Instruction(InstructionType.Jp, [
-                CON(ConditionVariety.NC), IMM16
-            ]));
-    hold.add([0xc2, 0xfff, 0xfff], Instruction(InstructionType.Jp, [
-                CON(ConditionVariety.NZ), IMM16
-            ]));
-    hold.add([0xf2, 0xfff, 0xfff], Instruction(InstructionType.Jp, [
-                CON(ConditionVariety.P), IMM16
-            ]));
-    hold.add([0xea, 0xfff, 0xfff], Instruction(InstructionType.Jp, [
-                CON(ConditionVariety.PE), IMM16
-            ]));
-    hold.add([0xe2, 0xfff, 0xfff], Instruction(InstructionType.Jp, [
-                CON(ConditionVariety.PO), IMM16
-            ]));
-    hold.add([0xca, 0xfff, 0xfff], Instruction(InstructionType.Jp, [
-                CON(ConditionVariety.Z), IMM16
-            ]));
-    hold.add([0xc3, 0xfff, 0xfff], Instruction(InstructionType.Jp, [IMM16]));
-    hold.add([0x38, 0xfff], Instruction(InstructionType.Jr, [
-                OR8(Register.C), LIMM8
-            ]));
-    hold.add([0x30, 0xfff], Instruction(InstructionType.Jr, [
-                CON(ConditionVariety.NC), LIMM8
-            ]));
-    hold.add([0x20, 0xfff], Instruction(InstructionType.Jr, [
-                CON(ConditionVariety.NZ), LIMM8
-            ]));
-    hold.add([0x28, 0xfff], Instruction(InstructionType.Jr, [
-                CON(ConditionVariety.Z), LIMM8
-            ]));
+    hold.add([0xdd, 0xe9], Instruction(InstructionType.Jp, [OR16_LK(Register.IX)]));
+    hold.add([0xfd, 0xe9], Instruction(InstructionType.Jp, [OR16_LK(Register.IY)]));
+    hold.add([0xda, 0xfff, 0xfff], Instruction(InstructionType.Jp, [OR8(Register.C), LIMM16]));
+    hold.add([0xfa, 0xfff, 0xfff], Instruction(InstructionType.Jp, [CON(ConditionVariety.M), LIMM16]));
+    hold.add([0xd2, 0xfff, 0xfff], Instruction(InstructionType.Jp, [CON(ConditionVariety.NC), LIMM16]));
+    hold.add([0xc2, 0xfff, 0xfff], Instruction(InstructionType.Jp, [CON(ConditionVariety.NZ), LIMM16]));
+    hold.add([0xf2, 0xfff, 0xfff], Instruction(InstructionType.Jp, [CON(ConditionVariety.P), LIMM16]));
+    hold.add([0xea, 0xfff, 0xfff], Instruction(InstructionType.Jp, [CON(ConditionVariety.PE), LIMM16]));
+    hold.add([0xe2, 0xfff, 0xfff], Instruction(InstructionType.Jp, [CON(ConditionVariety.PO), LIMM16]));
+    hold.add([0xca, 0xfff, 0xfff], Instruction(InstructionType.Jp, [CON(ConditionVariety.Z), LIMM16]));
+    hold.add([0xc3, 0xfff, 0xfff], Instruction(InstructionType.Jp, [LIMM16]));
+    hold.add([0x38, 0xfff], Instruction(InstructionType.Jr, [OR8(Register.C), LIMM8]));
+    hold.add([0x30, 0xfff], Instruction(InstructionType.Jr, [CON(ConditionVariety.NC), LIMM8]));
+    hold.add([0x20, 0xfff], Instruction(InstructionType.Jr, [CON(ConditionVariety.NZ), LIMM8]));
+    hold.add([0x28, 0xfff], Instruction(InstructionType.Jr, [CON(ConditionVariety.Z), LIMM8]));
     hold.add([0x18, 0xfff], Instruction(InstructionType.Jr, [LIMM8]));
-    hold.add([0x2], Instruction(InstructionType.Ld, [
-                OR16_LK(Register.BC), OR8(Register.A)
-            ]));
-    hold.add([0x12], Instruction(InstructionType.Ld, [
-                OR16_LK(Register.DE), OR8(Register.A)
-            ]));
-    hold.add([0x36, 0xfff], Instruction(InstructionType.Ld, [
-                OR16_LK(Register.HL), IMM8
-            ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([(rI & 0xFF) | 0x70], Instruction(InstructionType.Ld, [
-                        OR16_LK(Register.HL), r
-                    ]));
-    hold.add([0xdd, 0x36, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                IXOFF, IMM8
-            ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, (rI & 0xFF) | 0x70, 0xfff], Instruction(InstructionType.Ld, [
-                        IXOFF, r
-                    ]));
-    hold.add([0xfd, 0x36, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                IYOFF, IMM8
-            ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, (rI & 0xFF) | 0x70, 0xfff], Instruction(InstructionType.Ld, [
-                        IYOFF, r
-                    ]));
-    hold.add([0x32, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                IMM16_LK, OR8(Register.A)
-            ]));
-    hold.add([0xed, 0x43, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                IMM16_LK, OR16(Register.BC)
-            ]));
-    hold.add([0xed, 0x53, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                IMM16_LK, OR16(Register.DE)
-            ]));
-    hold.add([0x22, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                IMM16_LK, OR16(Register.HL)
-            ]));
-    hold.add([0xed, 0x63, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                IMM16_LK, OR16(Register.HL)
-            ]));
-    hold.add([0xdd, 0x22, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                IMM16_LK, OR16(Register.IX)
-            ]));
-    hold.add([0xfd, 0x22, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                IMM16_LK, OR16(Register.IY)
-            ]));
-    hold.add([0xed, 0x73, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                IMM16_LK, OR16(Register.SP)
-            ]));
-    hold.add([0xa], Instruction(InstructionType.Ld, [
-                OR8(Register.A), OR16_LK(Register.BC)
-            ]));
-    hold.add([0x1a], Instruction(InstructionType.Ld, [
-                OR8(Register.A), OR16_LK(Register.DE)
-            ]));
-    hold.add([0x3a, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                OR8(Register.A), IMM16_LK
-            ]));
-    hold.add([0xed, 0x57], Instruction(InstructionType.Ld, [
-                OR8(Register.A), OR8(Register.I)
-            ]));
-    hold.add([0xed, 0x5f], Instruction(InstructionType.Ld, [
-                OR8(Register.A), OR8(Register.R)
-            ]));
-    hold.add([0xed, 0x4b, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                OR16(Register.BC), IMM16_LK
-            ]));
-    hold.add([0xed, 0x5b, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                OR16(Register.DE), IMM16_LK
-            ]));
-    hold.add([0x2a, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                OR16(Register.HL), IMM16_LK
-            ]));
-    hold.add([0xed, 0x6b, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                OR16(Register.HL), IMM16_LK
-            ]));
-    hold.add([0xed, 0x47], Instruction(InstructionType.Ld, [
-                OR8(Register.I), OR8(Register.A)
-            ]));
-    hold.add([0xdd, 0x2a, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                OR16(Register.IX), IMM16_LK
-            ]));
-    hold.add([0xdd, 0x21, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                OR16(Register.IX), IMM16
-            ]));
-    hold.add([0xfd, 0x2a, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                OR16(Register.IY), IMM16_LK
-            ]));
-    hold.add([0xfd, 0x21, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                OR16(Register.IY), IMM16
-            ]));
-    hold.add([0xed, 0x4f], Instruction(InstructionType.Ld, [
-                OR8(Register.R), OR8(Register.A)
-            ]));
-    hold.add([0xed, 0x7b, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                OR16(Register.SP), IMM16_LK
-            ]));
-    hold.add([0xf9], Instruction(InstructionType.Ld, [
-                OR16(Register.SP), OR16(Register.HL)
-            ]));
-    hold.add([0xdd, 0xf9], Instruction(InstructionType.Ld, [
-                OR16(Register.SP), OR16(Register.IX)
-            ]));
-    hold.add([0xfd, 0xf9], Instruction(InstructionType.Ld, [
-                OR16(Register.SP), OR16(Register.IY)
-            ]));
-    foreach (reg16I, reg16; SIXTEENBIT_REGS[0])
-        hold.add([(reg16I << 4 & 0xFF) | 0x1, 0xfff, 0xfff], Instruction(InstructionType.Ld, [
-                    reg16, IMM16
-                ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([(rI << 3 & 0xFF) | 0x46], Instruction(InstructionType.Ld, [
-                        r, OR16_LK(Register.HL)
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, (rI << 3 & 0xFF) | 0x46, 0xfff], Instruction(InstructionType.Ld, [
-                        r, IXOFF
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, (rI << 3 & 0xFF) | 0x46, 0xfff], Instruction(InstructionType.Ld, [
-                        r, IYOFF
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([(rI << 3 & 0xFF) | 0x6, 0xfff], Instruction(InstructionType.Ld, [
-                        r, IMM8
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[1])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, (rI << 3 & 0xFF) | 0x6, 0xfff], Instruction(InstructionType.Ld, [
-                        r, IMM8
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[2])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, (rI << 3 & 0xFF) | 0x6, 0xfff], Instruction(InstructionType.Ld, [
-                        r, IMM8
-                    ]));
-    foreach (r1I, r1; EIGHTBIT_REGS[0])
-        if (r1.variety != OperandVariety.Unknown)
-            foreach (r2I, r2; EIGHTBIT_REGS[0])
-                if (r2.variety != OperandVariety.Unknown)
-                    hold.add([(r1I << 3 & 0xFF) | (r2I & 0xFF) | 0x40], Instruction(
-                            InstructionType.Ld, [r1, r2]));
-    foreach (r1I, r1; EIGHTBIT_REGS[1])
-        if (r1.variety != OperandVariety.Unknown)
-            foreach (r2I, r2; EIGHTBIT_REGS[1])
-                if (r2.variety != OperandVariety.Unknown)
-                    hold.add([0xdd, (r1I << 3 & 0xFF) | (r2I & 0xFF) | 0x40], Instruction(
-                            InstructionType.Ld, [r1, r2]));
-    foreach (r1I, r1; EIGHTBIT_REGS[2])
-        if (r1.variety != OperandVariety.Unknown)
-            foreach (r2I, r2; EIGHTBIT_REGS[2])
-                if (r2.variety != OperandVariety.Unknown)
-                    hold.add([0xfd, (r1I << 3 & 0xFF) | (r2I & 0xFF) | 0x40], Instruction(
-                            InstructionType.Ld, [r1, r2]));
+    hold.add([0x2], Instruction(InstructionType.Ld, [OR16_LK(Register.BC), OR8(Register.A)]));
+    hold.add([0x12], Instruction(InstructionType.Ld, [OR16_LK(Register.DE), OR8(Register.A)]));
+    hold.add([0x36, 0xfff], Instruction(InstructionType.Ld, [OR16_LK(Register.HL), IMM8]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([(rI & 0xFF) | 0x70], Instruction(InstructionType.Ld, [OR16_LK(Register.HL), r]));
+    hold.add([0xdd, 0x36, 0xfff, 0xfff], Instruction(InstructionType.Ld, [IXOFF, IMM8]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, (rI & 0xFF) | 0x70, 0xfff], Instruction(InstructionType.Ld, [IXOFF, r]));
+    hold.add([0xfd, 0x36, 0xfff, 0xfff], Instruction(InstructionType.Ld, [IYOFF, IMM8]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, (rI & 0xFF) | 0x70, 0xfff], Instruction(InstructionType.Ld, [IYOFF, r]));
+    hold.add([0x32, 0xfff, 0xfff], Instruction(InstructionType.Ld, [IMM16_LK, OR8(Register.A)]));
+    hold.add([0xed, 0x43, 0xfff, 0xfff], Instruction(InstructionType.Ld, [IMM16_LK, OR16(Register.BC)]));
+    hold.add([0xed, 0x53, 0xfff, 0xfff], Instruction(InstructionType.Ld, [IMM16_LK, OR16(Register.DE)]));
+    hold.add([0x22, 0xfff, 0xfff], Instruction(InstructionType.Ld, [IMM16_LK, OR16(Register.HL)]));
+    hold.add([0xed, 0x63, 0xfff, 0xfff], Instruction(InstructionType.Ld, [IMM16_LK, OR16(Register.HL)]));
+    hold.add([0xdd, 0x22, 0xfff, 0xfff], Instruction(InstructionType.Ld, [IMM16_LK, OR16(Register.IX)]));
+    hold.add([0xfd, 0x22, 0xfff, 0xfff], Instruction(InstructionType.Ld, [IMM16_LK, OR16(Register.IY)]));
+    hold.add([0xed, 0x73, 0xfff, 0xfff], Instruction(InstructionType.Ld, [IMM16_LK, OR16(Register.SP)]));
+    hold.add([0xa], Instruction(InstructionType.Ld, [OR8(Register.A), OR16_LK(Register.BC)]));
+    hold.add([0x1a], Instruction(InstructionType.Ld, [OR8(Register.A), OR16_LK(Register.DE)]));
+    hold.add([0x3a, 0xfff, 0xfff], Instruction(InstructionType.Ld, [OR8(Register.A), IMM16_LK]));
+    hold.add([0xed, 0x57], Instruction(InstructionType.Ld, [OR8(Register.A), OR8(Register.I)]));
+    hold.add([0xed, 0x5f], Instruction(InstructionType.Ld, [OR8(Register.A), OR8(Register.R)]));
+    hold.add([0xed, 0x4b, 0xfff, 0xfff], Instruction(InstructionType.Ld, [OR16(Register.BC), IMM16_LK]));
+    hold.add([0xed, 0x5b, 0xfff, 0xfff], Instruction(InstructionType.Ld, [OR16(Register.DE), IMM16_LK]));
+    hold.add([0x2a, 0xfff, 0xfff], Instruction(InstructionType.Ld, [OR16(Register.HL), IMM16_LK]));
+    hold.add([0xed, 0x6b, 0xfff, 0xfff], Instruction(InstructionType.Ld, [OR16(Register.HL), IMM16_LK]));
+    hold.add([0xed, 0x47], Instruction(InstructionType.Ld, [OR8(Register.I), OR8(Register.A)]));
+    hold.add([0xdd, 0x2a, 0xfff, 0xfff], Instruction(InstructionType.Ld, [OR16(Register.IX), IMM16_LK]));
+    hold.add([0xdd, 0x21, 0xfff, 0xfff], Instruction(InstructionType.Ld, [OR16(Register.IX), IMM16]));
+    hold.add([0xfd, 0x2a, 0xfff, 0xfff], Instruction(InstructionType.Ld, [OR16(Register.IY), IMM16_LK]));
+    hold.add([0xfd, 0x21, 0xfff, 0xfff], Instruction(InstructionType.Ld, [OR16(Register.IY), IMM16]));
+    hold.add([0xed, 0x4f], Instruction(InstructionType.Ld, [OR8(Register.R), OR8(Register.A)]));
+    hold.add([0xed, 0x7b, 0xfff, 0xfff], Instruction(InstructionType.Ld, [OR16(Register.SP), IMM16_LK]));
+    hold.add([0xf9], Instruction(InstructionType.Ld, [OR16(Register.SP), OR16(Register.HL)]));
+    hold.add([0xdd, 0xf9], Instruction(InstructionType.Ld, [OR16(Register.SP), OR16(Register.IX)]));
+    hold.add([0xfd, 0xf9], Instruction(InstructionType.Ld, [OR16(Register.SP), OR16(Register.IY)]));
+    foreach(reg16I, reg16 ; SIXTEENBIT_REGS[0])
+            hold.add([(reg16I << 4 & 0xFF) | 0x1, 0xfff, 0xfff], Instruction(InstructionType.Ld, [reg16, IMM16]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([(rI << 3 & 0xFF) | 0x46], Instruction(InstructionType.Ld, [r, OR16_LK(Register.HL)]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, (rI << 3 & 0xFF) | 0x46, 0xfff], Instruction(InstructionType.Ld, [r, IXOFF]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, (rI << 3 & 0xFF) | 0x46, 0xfff], Instruction(InstructionType.Ld, [r, IYOFF]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([(rI << 3 & 0xFF) | 0x6, 0xfff], Instruction(InstructionType.Ld, [r, IMM8]));
+    foreach(rI, r ; EIGHTBIT_REGS[1]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, (rI << 3 & 0xFF) | 0x6, 0xfff], Instruction(InstructionType.Ld, [r, IMM8]));
+    foreach(rI, r ; EIGHTBIT_REGS[2]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, (rI << 3 & 0xFF) | 0x6, 0xfff], Instruction(InstructionType.Ld, [r, IMM8]));
+    foreach(r1I, r1 ; EIGHTBIT_REGS[0]) if (r1.variety != OperandVariety.Unknown)
+            foreach(r2I, r2 ; EIGHTBIT_REGS[0]) if (r2.variety != OperandVariety.Unknown)
+                    hold.add([(r1I << 3 & 0xFF) | (r2I & 0xFF) | 0x40], Instruction(InstructionType.Ld, [r1, r2]));
+    foreach(r1I, r1 ; EIGHTBIT_REGS[1]) if (r1.variety != OperandVariety.Unknown)
+            foreach(r2I, r2 ; EIGHTBIT_REGS[1]) if (r2.variety != OperandVariety.Unknown)
+                    hold.add([0xdd, (r1I << 3 & 0xFF) | (r2I & 0xFF) | 0x40], Instruction(InstructionType.Ld, [r1, r2]));
+    foreach(r1I, r1 ; EIGHTBIT_REGS[2]) if (r1.variety != OperandVariety.Unknown)
+            foreach(r2I, r2 ; EIGHTBIT_REGS[2]) if (r2.variety != OperandVariety.Unknown)
+                    hold.add([0xfd, (r1I << 3 & 0xFF) | (r2I & 0xFF) | 0x40], Instruction(InstructionType.Ld, [r1, r2]));
     hold.add([0xed, 0xa8], Instruction(InstructionType.Ldd, []));
     hold.add([0xed, 0xb8], Instruction(InstructionType.Lddr, []));
     hold.add([0xed, 0xa0], Instruction(InstructionType.Ldi, []));
@@ -1056,41 +795,24 @@ pure OpcodeHolder makeGlobalLookup() {
     hold.add([0xdd, 0xb6, 0xfff], Instruction(InstructionType.Or, [IXOFF]));
     hold.add([0xfd, 0xb6, 0xfff], Instruction(InstructionType.Or, [IYOFF]));
     hold.add([0xf6, 0xfff], Instruction(InstructionType.Or, [IMM8]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
             hold.add([(rI & 0xFF) | 0xb0], Instruction(InstructionType.Or, [r]));
-    foreach (rI, r; EIGHTBIT_REGS[1])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, (rI & 0xFF) | 0xb0], Instruction(InstructionType.Or, [
-                        r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[2])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, (rI & 0xFF) | 0xb0], Instruction(InstructionType.Or, [
-                        r
-                    ]));
+    foreach(rI, r ; EIGHTBIT_REGS[1]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, (rI & 0xFF) | 0xb0], Instruction(InstructionType.Or, [r]));
+    foreach(rI, r ; EIGHTBIT_REGS[2]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, (rI & 0xFF) | 0xb0], Instruction(InstructionType.Or, [r]));
     hold.add([0xed, 0x8b], Instruction(InstructionType.Otdm, []));
     hold.add([0xed, 0x9b], Instruction(InstructionType.Otdmr, []));
     hold.add([0xed, 0xbb], Instruction(InstructionType.Otdr, []));
     hold.add([0xed, 0x83], Instruction(InstructionType.Otim, []));
     hold.add([0xed, 0x93], Instruction(InstructionType.Otimr, []));
     hold.add([0xed, 0xb3], Instruction(InstructionType.Otir, []));
-    hold.add([0xed, 0x71], Instruction(InstructionType.Out, [
-                OR8_LK(Register.C), PIMM8(0)
-            ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xed, (rI << 3 & 0xFF) | 0x41], Instruction(InstructionType.Out, [
-                        OR8_LK(Register.C), r
-                    ]));
-    hold.add([0xd3, 0xfff], Instruction(InstructionType.Out, [
-                IMM8_LK, OR8(Register.A)
-            ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xed, (rI << 3 & 0xFF) | 0x1, 0xfff], Instruction(InstructionType.Out0, [
-                        IMM8_LK, r
-                    ]));
+    hold.add([0xed, 0x71], Instruction(InstructionType.Out, [OR8_LK(Register.C), PIMM8(0)]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xed, (rI << 3 & 0xFF) | 0x41], Instruction(InstructionType.Out, [OR8_LK(Register.C), r]));
+    hold.add([0xd3, 0xfff], Instruction(InstructionType.Out, [IMM8_LK, OR8(Register.A)]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xed, (rI << 3 & 0xFF) | 0x1, 0xfff], Instruction(InstructionType.Out0, [IMM8_LK, r]));
     hold.add([0xed, 0xab], Instruction(InstructionType.Outd, []));
     hold.add([0xed, 0xa3], Instruction(InstructionType.Outi, []));
     hold.add([0xf1], Instruction(InstructionType.Pop, [OR16(Register.AF)]));
@@ -1105,31 +827,21 @@ pure OpcodeHolder makeGlobalLookup() {
     hold.add([0xe5], Instruction(InstructionType.Push, [OR16(Register.HL)]));
     hold.add([0xdd, 0xe5], Instruction(InstructionType.Push, [OR16(Register.IX)]));
     hold.add([0xfd, 0xe5], Instruction(InstructionType.Push, [OR16(Register.IY)]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xcb, (bit << 3 & 0xFF) | 0x86], Instruction(InstructionType.Res, [
-                    PIMM8(cast(ubyte) bit), OR16_LK(Register.HL)
-                ]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x86], Instruction(
-                InstructionType.Res, [PIMM8(cast(ubyte) bit), IXOFF]));
-    foreach (bit; 0 .. 8)
-        foreach (rI, r; EIGHTBIT_REGS[0])
-            if (r.variety != OperandVariety.Unknown)
-                hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | (rI & 0xFF) | 0x80], Instruction(
-                        InstructionType.Res, [PIMM8(cast(ubyte) bit), IXOFF, r]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x86], Instruction(
-                InstructionType.Res, [PIMM8(cast(ubyte) bit), IYOFF]));
-    foreach (bit; 0 .. 8)
-        foreach (rI, r; EIGHTBIT_REGS[0])
-            if (r.variety != OperandVariety.Unknown)
-                hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | (rI & 0xFF) | 0x80], Instruction(
-                        InstructionType.Res, [PIMM8(cast(ubyte) bit), IYOFF, r]));
-    foreach (bit; 0 .. 8)
-        foreach (rI, r; EIGHTBIT_REGS[0])
-            if (r.variety != OperandVariety.Unknown)
-                hold.add([0xcb, (bit << 3 & 0xFF) | (rI & 0xFF) | 0x80], Instruction(
-                        InstructionType.Res, [PIMM8(cast(ubyte) bit), r]));
+    foreach(bit ; 0..8)
+            hold.add([0xcb, (bit << 3 & 0xFF) | 0x86], Instruction(InstructionType.Res, [PIMM8(cast(ubyte) bit), OR16_LK(Register.HL)]));
+    foreach(bit ; 0..8)
+            hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x86], Instruction(InstructionType.Res, [PIMM8(cast(ubyte) bit), IXOFF]));
+    foreach(bit ; 0..8)
+            foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+                    hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | (rI & 0xFF) | 0x80], Instruction(InstructionType.Res, [PIMM8(cast(ubyte) bit), IXOFF, r]));
+    foreach(bit ; 0..8)
+            hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0x86], Instruction(InstructionType.Res, [PIMM8(cast(ubyte) bit), IYOFF]));
+    foreach(bit ; 0..8)
+            foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+                    hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | (rI & 0xFF) | 0x80], Instruction(InstructionType.Res, [PIMM8(cast(ubyte) bit), IYOFF, r]));
+    foreach(bit ; 0..8)
+            foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+                    hold.add([0xcb, (bit << 3 & 0xFF) | (rI & 0xFF) | 0x80], Instruction(InstructionType.Res, [PIMM8(cast(ubyte) bit), r]));
     hold.add([0xc9], Instruction(InstructionType.Ret, []));
     hold.add([0xd8], Instruction(InstructionType.Ret, [OR8(Register.C)]));
     hold.add([0xf8], Instruction(InstructionType.Ret, [CON(ConditionVariety.M)]));
@@ -1141,273 +853,145 @@ pure OpcodeHolder makeGlobalLookup() {
     hold.add([0xc8], Instruction(InstructionType.Ret, [CON(ConditionVariety.Z)]));
     hold.add([0xed, 0x4d], Instruction(InstructionType.Reti, []));
     hold.add([0xed, 0x45], Instruction(InstructionType.Retn, []));
-    hold.add([0xcb, 0x16], Instruction(InstructionType.Rl, [
-                OR16_LK(Register.HL)
-            ]));
+    hold.add([0xcb, 0x16], Instruction(InstructionType.Rl, [OR16_LK(Register.HL)]));
     hold.add([0xdd, 0xcb, 0xfff, 0x16], Instruction(InstructionType.Rl, [IXOFF]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, 0xcb, 0xfff, (rI & 0xFF) | 0x10], Instruction(InstructionType.Rl, [
-                        IXOFF, r
-                    ]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, 0xcb, 0xfff, (rI & 0xFF) | 0x10], Instruction(InstructionType.Rl, [IXOFF, r]));
     hold.add([0xfd, 0xcb, 0xfff, 0x16], Instruction(InstructionType.Rl, [IYOFF]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, 0xcb, 0xfff, (rI & 0xFF) | 0x10], Instruction(InstructionType.Rl, [
-                        IYOFF, r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xcb, (rI & 0xFF) | 0x10], Instruction(InstructionType.Rl, [
-                        r
-                    ]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, 0xcb, 0xfff, (rI & 0xFF) | 0x10], Instruction(InstructionType.Rl, [IYOFF, r]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xcb, (rI & 0xFF) | 0x10], Instruction(InstructionType.Rl, [r]));
     hold.add([0x17], Instruction(InstructionType.Rla, []));
-    hold.add([0xcb, 0x6], Instruction(InstructionType.Rlc, [
-                OR16_LK(Register.HL)
-            ]));
+    hold.add([0xcb, 0x6], Instruction(InstructionType.Rlc, [OR16_LK(Register.HL)]));
     hold.add([0xdd, 0xcb, 0xfff, 0x6], Instruction(InstructionType.Rlc, [IXOFF]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, 0xcb, 0xfff, (rI & 0xFF)], Instruction(InstructionType.Rlc, [
-                        IXOFF, r
-                    ]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, 0xcb, 0xfff, (rI & 0xFF)], Instruction(InstructionType.Rlc, [IXOFF, r]));
     hold.add([0xfd, 0xcb, 0xfff, 0x6], Instruction(InstructionType.Rlc, [IYOFF]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, 0xcb, 0xfff, (rI & 0xFF)], Instruction(InstructionType.Rlc, [
-                        IYOFF, r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, 0xcb, 0xfff, (rI & 0xFF)], Instruction(InstructionType.Rlc, [IYOFF, r]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
             hold.add([0xcb, (rI & 0xFF)], Instruction(InstructionType.Rlc, [r]));
     hold.add([0x7], Instruction(InstructionType.Rlca, []));
     hold.add([0xed, 0x6f], Instruction(InstructionType.Rld, []));
-    hold.add([0xcb, 0x1e], Instruction(InstructionType.Rr, [
-                OR16_LK(Register.HL)
-            ]));
+    hold.add([0xcb, 0x1e], Instruction(InstructionType.Rr, [OR16_LK(Register.HL)]));
     hold.add([0xdd, 0xcb, 0xfff, 0x1e], Instruction(InstructionType.Rr, [IXOFF]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, 0xcb, 0xfff, (rI & 0xFF) | 0x18], Instruction(InstructionType.Rr, [
-                        IXOFF, r
-                    ]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, 0xcb, 0xfff, (rI & 0xFF) | 0x18], Instruction(InstructionType.Rr, [IXOFF, r]));
     hold.add([0xfd, 0xcb, 0xfff, 0x1e], Instruction(InstructionType.Rr, [IYOFF]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, 0xcb, 0xfff, (rI & 0xFF) | 0x18], Instruction(InstructionType.Rr, [
-                        IYOFF, r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xcb, (rI & 0xFF) | 0x18], Instruction(InstructionType.Rr, [
-                        r
-                    ]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, 0xcb, 0xfff, (rI & 0xFF) | 0x18], Instruction(InstructionType.Rr, [IYOFF, r]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xcb, (rI & 0xFF) | 0x18], Instruction(InstructionType.Rr, [r]));
     hold.add([0x1f], Instruction(InstructionType.Rra, []));
-    hold.add([0xcb, 0xe], Instruction(InstructionType.Rrc, [
-                OR16_LK(Register.HL)
-            ]));
+    hold.add([0xcb, 0xe], Instruction(InstructionType.Rrc, [OR16_LK(Register.HL)]));
     hold.add([0xdd, 0xcb, 0xfff, 0xe], Instruction(InstructionType.Rrc, [IXOFF]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, 0xcb, 0xfff, (rI & 0xFF) | 0x8], Instruction(InstructionType.Rrc, [
-                        IXOFF, r
-                    ]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, 0xcb, 0xfff, (rI & 0xFF) | 0x8], Instruction(InstructionType.Rrc, [IXOFF, r]));
     hold.add([0xfd, 0xcb, 0xfff, 0xe], Instruction(InstructionType.Rrc, [IYOFF]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, 0xcb, 0xfff, (rI & 0xFF) | 0x8], Instruction(InstructionType.Rrc, [
-                        IYOFF, r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xcb, (rI & 0xFF) | 0x8], Instruction(InstructionType.Rrc, [
-                        r
-                    ]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, 0xcb, 0xfff, (rI & 0xFF) | 0x8], Instruction(InstructionType.Rrc, [IYOFF, r]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xcb, (rI & 0xFF) | 0x8], Instruction(InstructionType.Rrc, [r]));
     hold.add([0xf], Instruction(InstructionType.Rrca, []));
     hold.add([0xed, 0x67], Instruction(InstructionType.Rrd, []));
-    foreach (rstI, ubyte rst; [
-            0x00, 0x08,
-            0x10, 0x18,
-            0x20, 0x28,
-            0x30, 0x38
-        ])
-        hold.add([(rstI << 3 & 0xFF) | 0xc7], Instruction(InstructionType.Rst, [
-                    RST(rst)
-                ]));
-    hold.add([0x9e], Instruction(InstructionType.Sbc, [
-                OR8(Register.A), OR16_LK(Register.HL)
-            ]));
-    hold.add([0xdd, 0x9e, 0xfff], Instruction(InstructionType.Sbc, [
-                OR8(Register.A), IXOFF
-            ]));
-    hold.add([0xfd, 0x9e, 0xfff], Instruction(InstructionType.Sbc, [
-                OR8(Register.A), IYOFF
-            ]));
-    hold.add([0xde, 0xfff], Instruction(InstructionType.Sbc, [
-                OR8(Register.A), IMM8
-            ]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([(rI & 0xFF) | 0x98], Instruction(InstructionType.Sbc, [
-                        OR8(Register.A), r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[1])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, (rI & 0xFF) | 0x98], Instruction(InstructionType.Sbc, [
-                        OR8(Register.A), r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[2])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, (rI & 0xFF) | 0x98], Instruction(InstructionType.Sbc, [
-                        OR8(Register.A), r
-                    ]));
-    foreach (reg16I, reg16; SIXTEENBIT_REGS[0])
-        hold.add([0xed, (reg16I << 4 & 0xFF) | 0x42], Instruction(InstructionType.Sbc, [
-                    OR16(Register.HL), reg16
-                ]));
+    foreach(rstI, ubyte rst ; [
+        0x00, 0x08,
+        0x10, 0x18,
+        0x20, 0x28,
+        0x30, 0x38
+    ])
+            hold.add([(rstI << 3 & 0xFF) | 0xc7], Instruction(InstructionType.Rst, [RST(rst)]));
+    hold.add([0x9e], Instruction(InstructionType.Sbc, [OR8(Register.A), OR16_LK(Register.HL)]));
+    hold.add([0xdd, 0x9e, 0xfff], Instruction(InstructionType.Sbc, [OR8(Register.A), IXOFF]));
+    hold.add([0xfd, 0x9e, 0xfff], Instruction(InstructionType.Sbc, [OR8(Register.A), IYOFF]));
+    hold.add([0xde, 0xfff], Instruction(InstructionType.Sbc, [OR8(Register.A), IMM8]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([(rI & 0xFF) | 0x98], Instruction(InstructionType.Sbc, [OR8(Register.A), r]));
+    foreach(rI, r ; EIGHTBIT_REGS[1]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, (rI & 0xFF) | 0x98], Instruction(InstructionType.Sbc, [OR8(Register.A), r]));
+    foreach(rI, r ; EIGHTBIT_REGS[2]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, (rI & 0xFF) | 0x98], Instruction(InstructionType.Sbc, [OR8(Register.A), r]));
+    foreach(reg16I, reg16 ; SIXTEENBIT_REGS[0])
+            hold.add([0xed, (reg16I << 4 & 0xFF) | 0x42], Instruction(InstructionType.Sbc, [OR16(Register.HL), reg16]));
     hold.add([0x37], Instruction(InstructionType.Scf, []));
-    foreach (bit; 0 .. 8)
-        hold.add([0xcb, (bit << 3 & 0xFF) | 0xc6], Instruction(InstructionType.Set, [
-                    PIMM8(cast(ubyte) bit), OR16_LK(Register.HL)
-                ]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0xc6], Instruction(
-                InstructionType.Set, [PIMM8(cast(ubyte) bit), IXOFF]));
-    foreach (bit; 0 .. 8)
-        foreach (rI, r; EIGHTBIT_REGS[0])
-            if (r.variety != OperandVariety.Unknown)
-                hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | (rI & 0xFF) | 0xc0], Instruction(
-                        InstructionType.Set, [PIMM8(cast(ubyte) bit), IXOFF, r]));
-    foreach (bit; 0 .. 8)
-        hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0xc6], Instruction(
-                InstructionType.Set, [PIMM8(cast(ubyte) bit), IYOFF]));
-    foreach (bit; 0 .. 8)
-        foreach (rI, r; EIGHTBIT_REGS[0])
-            if (r.variety != OperandVariety.Unknown)
-                hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | (rI & 0xFF) | 0xc0], Instruction(
-                        InstructionType.Set, [PIMM8(cast(ubyte) bit), IYOFF, r]));
-    foreach (bit; 0 .. 8)
-        foreach (rI, r; EIGHTBIT_REGS[0])
-            if (r.variety != OperandVariety.Unknown)
-                hold.add([0xcb, (bit << 3 & 0xFF) | (rI & 0xFF) | 0xc0], Instruction(
-                        InstructionType.Set, [PIMM8(cast(ubyte) bit), r]));
-    hold.add([0xcb, 0x26], Instruction(InstructionType.Sla, [
-                OR16_LK(Register.HL)
-            ]));
+    foreach(bit ; 0..8)
+            hold.add([0xcb, (bit << 3 & 0xFF) | 0xc6], Instruction(InstructionType.Set, [PIMM8(cast(ubyte) bit), OR16_LK(Register.HL)]));
+    foreach(bit ; 0..8)
+            hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0xc6], Instruction(InstructionType.Set, [PIMM8(cast(ubyte) bit), IXOFF]));
+    foreach(bit ; 0..8)
+            foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+                    hold.add([0xdd, 0xcb, 0xfff, (bit << 3 & 0xFF) | (rI & 0xFF) | 0xc0], Instruction(InstructionType.Set, [PIMM8(cast(ubyte) bit), IXOFF, r]));
+    foreach(bit ; 0..8)
+            hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | 0xc6], Instruction(InstructionType.Set, [PIMM8(cast(ubyte) bit), IYOFF]));
+    foreach(bit ; 0..8)
+            foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+                    hold.add([0xfd, 0xcb, 0xfff, (bit << 3 & 0xFF) | (rI & 0xFF) | 0xc0], Instruction(InstructionType.Set, [PIMM8(cast(ubyte) bit), IYOFF, r]));
+    foreach(bit ; 0..8)
+            foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+                    hold.add([0xcb, (bit << 3 & 0xFF) | (rI & 0xFF) | 0xc0], Instruction(InstructionType.Set, [PIMM8(cast(ubyte) bit), r]));
+    hold.add([0xcb, 0x26], Instruction(InstructionType.Sla, [OR16_LK(Register.HL)]));
     hold.add([0xdd, 0xcb, 0xfff, 0x26], Instruction(InstructionType.Sla, [IXOFF]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, 0xcb, 0xfff, (rI & 0xFF) | 0x20], Instruction(
-                    InstructionType.Sla, [IXOFF, r]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, 0xcb, 0xfff, (rI & 0xFF) | 0x20], Instruction(InstructionType.Sla, [IXOFF, r]));
     hold.add([0xfd, 0xcb, 0xfff, 0x26], Instruction(InstructionType.Sla, [IYOFF]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, 0xcb, 0xfff, (rI & 0xFF) | 0x20], Instruction(
-                    InstructionType.Sla, [IYOFF, r]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xcb, (rI & 0xFF) | 0x20], Instruction(InstructionType.Sla, [
-                        r
-                    ]));
-    hold.add([0xcb, 0x36], Instruction(InstructionType.Sll, [
-                OR16_LK(Register.HL)
-            ]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, 0xcb, 0xfff, (rI & 0xFF) | 0x20], Instruction(InstructionType.Sla, [IYOFF, r]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xcb, (rI & 0xFF) | 0x20], Instruction(InstructionType.Sla, [r]));
+    hold.add([0xcb, 0x36], Instruction(InstructionType.Sll, [OR16_LK(Register.HL)]));
     hold.add([0xdd, 0xcb, 0xfff, 0x36], Instruction(InstructionType.Sll, [IXOFF]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, 0xcb, 0xfff, (rI & 0xFF) | 0x30], Instruction(
-                    InstructionType.Sll, [IXOFF, r]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, 0xcb, 0xfff, (rI & 0xFF) | 0x30], Instruction(InstructionType.Sll, [IXOFF, r]));
     hold.add([0xfd, 0xcb, 0xfff, 0x36], Instruction(InstructionType.Sll, [IYOFF]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, 0xcb, 0xfff, (rI & 0xFF) | 0x30], Instruction(
-                    InstructionType.Sll, [IYOFF, r]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xcb, (rI & 0xFF) | 0x30], Instruction(InstructionType.Sll, [
-                        r
-                    ]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, 0xcb, 0xfff, (rI & 0xFF) | 0x30], Instruction(InstructionType.Sll, [IYOFF, r]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xcb, (rI & 0xFF) | 0x30], Instruction(InstructionType.Sll, [r]));
     hold.add([0xed, 0x76], Instruction(InstructionType.Slp, []));
-    hold.add([0xcb, 0x2e], Instruction(InstructionType.Sra, [
-                OR16_LK(Register.HL)
-            ]));
+    hold.add([0xcb, 0x2e], Instruction(InstructionType.Sra, [OR16_LK(Register.HL)]));
     hold.add([0xdd, 0xcb, 0xfff, 0x2e], Instruction(InstructionType.Sra, [IXOFF]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, 0xcb, 0xfff, (rI & 0xFF) | 0x28], Instruction(
-                    InstructionType.Sra, [IXOFF, r]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, 0xcb, 0xfff, (rI & 0xFF) | 0x28], Instruction(InstructionType.Sra, [IXOFF, r]));
     hold.add([0xfd, 0xcb, 0xfff, 0x2e], Instruction(InstructionType.Sra, [IYOFF]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, 0xcb, 0xfff, (rI & 0xFF) | 0x28], Instruction(
-                    InstructionType.Sra, [IYOFF, r]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xcb, (rI & 0xFF) | 0x28], Instruction(InstructionType.Sra, [
-                        r
-                    ]));
-    hold.add([0xcb, 0x3e], Instruction(InstructionType.Srl, [
-                OR16_LK(Register.HL)
-            ]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, 0xcb, 0xfff, (rI & 0xFF) | 0x28], Instruction(InstructionType.Sra, [IYOFF, r]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xcb, (rI & 0xFF) | 0x28], Instruction(InstructionType.Sra, [r]));
+    hold.add([0xcb, 0x3e], Instruction(InstructionType.Srl, [OR16_LK(Register.HL)]));
     hold.add([0xdd, 0xcb, 0xfff, 0x3e], Instruction(InstructionType.Srl, [IXOFF]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, 0xcb, 0xfff, (rI & 0xFF) | 0x38], Instruction(
-                    InstructionType.Srl, [IXOFF, r]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, 0xcb, 0xfff, (rI & 0xFF) | 0x38], Instruction(InstructionType.Srl, [IXOFF, r]));
     hold.add([0xfd, 0xcb, 0xfff, 0x3e], Instruction(InstructionType.Srl, [IYOFF]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, 0xcb, 0xfff, (rI & 0xFF) | 0x38], Instruction(
-                    InstructionType.Srl, [IYOFF, r]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xcb, (rI & 0xFF) | 0x38], Instruction(InstructionType.Srl, [
-                        r
-                    ]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, 0xcb, 0xfff, (rI & 0xFF) | 0x38], Instruction(InstructionType.Srl, [IYOFF, r]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xcb, (rI & 0xFF) | 0x38], Instruction(InstructionType.Srl, [r]));
     hold.add([0x96], Instruction(InstructionType.Sub, [OR16_LK(Register.HL)]));
     hold.add([0xdd, 0x96, 0xfff], Instruction(InstructionType.Sub, [IXOFF]));
     hold.add([0xfd, 0x96, 0xfff], Instruction(InstructionType.Sub, [IYOFF]));
     hold.add([0xd6, 0xfff], Instruction(InstructionType.Sub, [IMM8]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
             hold.add([(rI & 0xFF) | 0x90], Instruction(InstructionType.Sub, [r]));
-    foreach (rI, r; EIGHTBIT_REGS[1])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, (rI & 0xFF) | 0x90], Instruction(InstructionType.Sub, [
-                        r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[2])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, (rI & 0xFF) | 0x90], Instruction(InstructionType.Sub, [
-                        r
-                    ]));
-    hold.add([0xed, 0x34], Instruction(InstructionType.Tst, [
-                OR16_LK(Register.HL)
-            ]));
+    foreach(rI, r ; EIGHTBIT_REGS[1]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, (rI & 0xFF) | 0x90], Instruction(InstructionType.Sub, [r]));
+    foreach(rI, r ; EIGHTBIT_REGS[2]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, (rI & 0xFF) | 0x90], Instruction(InstructionType.Sub, [r]));
+    hold.add([0xed, 0x34], Instruction(InstructionType.Tst, [OR16_LK(Register.HL)]));
     hold.add([0xed, 0x64, 0xfff], Instruction(InstructionType.Tst, [IMM8]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xed, (rI << 3 & 0xFF) | 0x4], Instruction(InstructionType.Tst, [
-                        r
-                    ]));
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xed, (rI << 3 & 0xFF) | 0x4], Instruction(InstructionType.Tst, [r]));
     hold.add([0xed, 0x74, 0xfff], Instruction(InstructionType.Tstio, [IMM8]));
     hold.add([0xae], Instruction(InstructionType.Xor, [OR16_LK(Register.HL)]));
     hold.add([0xdd, 0xae, 0xfff], Instruction(InstructionType.Xor, [IXOFF]));
     hold.add([0xfd, 0xae, 0xfff], Instruction(InstructionType.Xor, [IYOFF]));
     hold.add([0xee, 0xfff], Instruction(InstructionType.Xor, [IMM8]));
-    foreach (rI, r; EIGHTBIT_REGS[0])
-        if (r.variety != OperandVariety.Unknown)
+    foreach(rI, r ; EIGHTBIT_REGS[0]) if (r.variety != OperandVariety.Unknown)
             hold.add([(rI & 0xFF) | 0xa8], Instruction(InstructionType.Xor, [r]));
-    foreach (rI, r; EIGHTBIT_REGS[1])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xdd, (rI & 0xFF) | 0xa8], Instruction(InstructionType.Xor, [
-                        r
-                    ]));
-    foreach (rI, r; EIGHTBIT_REGS[2])
-        if (r.variety != OperandVariety.Unknown)
-            hold.add([0xfd, (rI & 0xFF) | 0xa8], Instruction(InstructionType.Xor, [
-                        r
-                    ]));
+    foreach(rI, r ; EIGHTBIT_REGS[1]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xdd, (rI & 0xFF) | 0xa8], Instruction(InstructionType.Xor, [r]));
+    foreach(rI, r ; EIGHTBIT_REGS[2]) if (r.variety != OperandVariety.Unknown)
+            hold.add([0xfd, (rI & 0xFF) | 0xa8], Instruction(InstructionType.Xor, [r]));
     return hold;
 
 }

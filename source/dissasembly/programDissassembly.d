@@ -45,13 +45,13 @@ DecompilerUnit createDecomeUnitForProgram(ubyte[] data){
     bool programHasMagicNumber = data[0..2] == [0xBB, 0x6D];
 
     AnalysisState state = analyse(
-        0x9D95,    // The org
+        0x9D93,    // The org
 
         16 * 1024, // Technically should be 8kb, but it apears after 8kb
                    // ram simply is nolonger executable, so people might
                    // use it as data
 
-        [programHasMagicNumber ? 0x9D97 : 0x9D95], // Skip magic bytes for analyse
+        [programHasMagicNumber ? 0x9D95 : 0x9D93], // Skip magic bytes for analyse
         data
     );
     return state.genCompleteUnit();

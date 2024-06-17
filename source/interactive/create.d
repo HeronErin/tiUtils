@@ -4,7 +4,7 @@ import std.file;
 import common;
 
 
-int createInteractive(string pathToProj, string pathToBin) {
+int createInteractive(string pathToBin, string pathToProj) {
     if (!exists(pathToBin)){
         stderr.write("Error: File \"");
         stderr.write(pathToBin);

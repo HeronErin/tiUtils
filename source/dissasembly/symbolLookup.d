@@ -1,9 +1,5 @@
 module dissasembly.symbolLookup;
 
-pure void logAtCompileTime(string message)() {
-    mixin("pragma(msg, \"" ~ message ~ "\");");
-}
-
 enum string DEFAULT_SYMBOL_DATA_STR = import("default.symbols");
 const Pair[] pairs = pairsFromSymbolText(DEFAULT_SYMBOL_DATA_STR);
 

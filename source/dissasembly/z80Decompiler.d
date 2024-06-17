@@ -1,6 +1,7 @@
 module dissasembly.z80Decompiler;
 import std.conv;
 import std.format;
+import std.stdio;
 import dissasembly.z80;
 import parseUtils.flashHeader;
 
@@ -40,7 +41,7 @@ struct DecompLine {
     LineVarity lineVarity;
     size_t location;
     Label usesLabel = null;
-    
+
     ubyte[] data;
     union {
         Instruction asmInstruction;
@@ -113,6 +114,13 @@ string toAsm(DecompilerUnit unit) {
             location += line.getSize;
         if (line.lineVarity != LineVarity.AddedComment)
             foreach (DecompLine label; unit.labels) {
+
+                "Ltest ".write;
+                label.label.addr.write;
+                " ".write;
+                location.write;
+                " ".writeln;
+                (label.label.addr == location).writeln;
                 if (label.label.addr == location)
                     assembly ~= label.label.genName ~ ":\n";
             }
@@ -167,7 +175,22 @@ DecompLine parseZ80Line(ref DecompilerUnit unit, const(ubyte[]) data, ref size_t
     size_t oldIndex = index;
 
     auto instruction = getInstruction_nullable(data, index);
+    // Failsafe for unknown instructions. 
+    if (instruction == null) {
+        static bool hasPrintedWarning = false;
+        if (!hasPrintedWarning){
+            stderr.write("Warning: invalid z80 instruction found in file!");
+            hasPrintedWarning = true;
+        }
+        line.lineVarity = LineVarity.Data;
+        line.data = [data[oldIndex]];
+        line.isAsciiData = false;
+        index = oldIndex + 1;
+        
+        return line;
+    }
     line.asmInstruction = instruction.value;
+    line.asmInstruction.byteSize = index - oldIndex;
 
     // Detect Bcalls
     if (line.asmInstruction.type == InstructionType.Rst && line.asmInstruction

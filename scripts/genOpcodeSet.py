@@ -146,7 +146,10 @@ for entry in table:
             elif operand == "d":
                 operands.append("LIMM8")
             elif operand == "nn":
-                operands.append("IMM16")
+                if entry["mnemonic"].split(" ")[0] in ["JP", "CALL"]:
+                    operands.append("LIMM16")
+                else:
+                    operands.append("IMM16")
             elif operand == "(nn)":
                 operands.append("IMM16_LK")
             elif operand == "(n)":
